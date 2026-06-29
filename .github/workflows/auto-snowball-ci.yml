@@ -62,10 +62,13 @@ jobs:
         run: |
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name: Full pytest suite
+      - name: Full non-browser pytest suite
         working-directory: auto_snowball_web_v10_34
         run: |
-          python -m pytest -q
+          python -m pytest -q -ra \
+            --ignore=test_v82_playwright_e2e.py \
+            --ignore=test_v94_e2e_full_coverage.py \
+            --ignore=test_v103_playwright_strategy_calculator.py
 
       - name: 5050 Flask smoke and browser E2E
         working-directory: auto_snowball_web_v10_34
