@@ -104,7 +104,6 @@ jobs:
               print('\n'.join(errors))
               raise SystemExit(1)
           PY
-        always: true
 
       - name: Stop 5050 server
         if: always()
