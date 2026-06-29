@@ -27,7 +27,7 @@ jobs:
           pip install -r requirements.txt
           python -m playwright install --with-deps chromium
 
-      - name: Rebuild v10.34 archive
+      - name: Rebuild v10.34 archive with safety tests
         run: |
           python scripts/rebuild_release.py
 
@@ -36,7 +36,7 @@ jobs:
           python - <<'PY'
           import hashlib, pathlib
           p = pathlib.Path('releases/v10.34/auto_snowball_web_v10_34_overview_auto_select_sync_e2e.zip')
-          expected = '2bc9ef2850b0f28d2cfdeb9ef6f34958c668ff265dec1d6c80a7240a2ce8eecb'
+          expected = '3b1c9b554289ea691577e241246c8f7ab4640fbc8c5fa562651f3107b1dd432f'
           actual = hashlib.sha256(p.read_bytes()).hexdigest()
           print(actual)
           raise SystemExit(0 if actual == expected else 1)
