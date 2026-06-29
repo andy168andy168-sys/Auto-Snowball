@@ -1,0 +1,30 @@
+name: Auto Snowball Release CI
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  release-archive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Rebuild v10.34 archive
+        run: |
+          python scripts/rebuild_release.py
+      - name: Validate archive hash
+        run: |
+          python - <<'PY'
+          import hashlib, pathlib
+          p = pathlib.Path('releases/v10.34/auto_snowball_web_v10_34_overview_auto_select_sync_e2e.zip')
+          expected = '2bc9ef2850b0f28d2cfdeb9ef6f34958c668ff265dec1d6c80a7240a2ce8eecb'
+          actual = hashlib.sha256(p.read_bytes()).hexdigest()
+          print(actual)
+          raise SystemExit(0 if actual == expected else 1)
+          PY
