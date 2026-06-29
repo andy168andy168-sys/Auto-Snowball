@@ -1,0 +1,12 @@
+__pycache__/
+.pytest_cache/
+.env
+.env.*
+*.log
+*.sqlite
+*.db
+.audit_truth_cache.json
+.roll_engine_state.json
+.roll_engine_parameters.json
+.market_sync_cache.json
+.DS_Store
