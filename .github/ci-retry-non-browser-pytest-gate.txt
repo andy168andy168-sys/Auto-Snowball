@@ -1,0 +1,3 @@
+CI retry marker for non-browser pytest gate.
+
+Purpose: trigger a fresh pull_request workflow after separating browser Playwright tests from the non-browser pytest gate.
