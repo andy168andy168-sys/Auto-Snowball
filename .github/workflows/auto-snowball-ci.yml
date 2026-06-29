@@ -5,19 +5,32 @@ on: [push, pull_request, workflow_dispatch]
 jobs:
   release-archive:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      AUTO_SNOWBALL_SAFE_MODE: "1"
+      AUTO_SNOWBALL_NO_REAL_ORDERS: "1"
+      AUTO_SNOWBALL_READ_ONLY: "1"
+      BINANCE_READ_ONLY: "1"
+      FLASK_ENV: "testing"
+      PORT: "5050"
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install dependencies
+
+      - name: Install root dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          python -m playwright install --with-deps chromium
+
       - name: Rebuild v10.34 archive
         run: |
           python scripts/rebuild_release.py
+
       - name: Validate archive hash
         run: |
           python - <<'PY'
@@ -28,3 +41,73 @@ jobs:
           print(actual)
           raise SystemExit(0 if actual == expected else 1)
           PY
+
+      - name: Extract release archive
+        run: |
+          rm -rf auto_snowball_web_v10_34
+          unzip -q releases/v10.34/auto_snowball_web_v10_34_overview_auto_select_sync_e2e.zip -d auto_snowball_web_v10_34
+
+      - name: Static production gate audit
+        run: |
+          python scripts/production_gate_audit.py \
+            --zip releases/v10.34/auto_snowball_web_v10_34_overview_auto_select_sync_e2e.zip \
+            --extract-dir auto_snowball_web_v10_34
+
+      - name: Install release dependencies
+        working-directory: auto_snowball_web_v10_34
+        run: |
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Full pytest suite
+        working-directory: auto_snowball_web_v10_34
+        run: |
+          python -m pytest -q
+
+      - name: 5050 Flask smoke and browser E2E
+        working-directory: auto_snowball_web_v10_34
+        run: |
+          python main.py > ../auto_snowball_5050.log 2>&1 & echo $! > ../auto_snowball_5050.pid
+          python - <<'PY'
+          import sys, time, urllib.error, urllib.request
+          url = 'http://127.0.0.1:5050/'
+          deadline = time.time() + 30
+          last = None
+          while time.time() < deadline:
+              try:
+                  with urllib.request.urlopen(url, timeout=2) as resp:
+                      print('5050 root status', resp.status)
+                      if 200 <= resp.status < 500:
+                          raise SystemExit(0)
+              except Exception as exc:
+                  last = exc
+                  time.sleep(1)
+          print(open('../auto_snowball_5050.log', encoding='utf-8', errors='ignore').read())
+          raise SystemExit(f'5050 did not become reachable: {last}')
+          PY
+          python - <<'PY'
+          from playwright.sync_api import sync_playwright
+          urls = ['http://127.0.0.1:5050/', 'http://127.0.0.1:5050/auto-select', 'http://127.0.0.1:5050/api/market/live']
+          errors = []
+          with sync_playwright() as p:
+              browser = p.chromium.launch()
+              page = browser.new_page()
+              page.on('console', lambda msg: errors.append(f'console:{msg.type}:{msg.text}') if msg.type in {'error'} else None)
+              page.on('pageerror', lambda exc: errors.append(f'pageerror:{exc}'))
+              for url in urls:
+                  response = page.goto(url, wait_until='networkidle', timeout=15000)
+                  status = response.status if response else 'NO_RESPONSE'
+                  print(url, status)
+                  if not response or status >= 500:
+                      errors.append(f'{url} status={status}')
+              browser.close()
+          if errors:
+              print('\n'.join(errors))
+              raise SystemExit(1)
+          PY
+        always: true
+
+      - name: Stop 5050 server
+        if: always()
+        run: |
+          if [ -f auto_snowball_5050.pid ]; then kill "$(cat auto_snowball_5050.pid)" || true; fi
+          if [ -f auto_snowball_5050.log ]; then tail -200 auto_snowball_5050.log; fi
