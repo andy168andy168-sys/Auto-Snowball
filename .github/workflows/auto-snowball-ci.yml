@@ -47,6 +47,10 @@ jobs:
           rm -rf auto_snowball_web_v10_34
           unzip -q releases/v10.34/auto_snowball_web_v10_34_overview_auto_select_sync_e2e.zip -d auto_snowball_web_v10_34
 
+      - name: Require production safety tests inside archive
+        run: |
+          python scripts/assert_release_tests_inside_archive.py --extract-dir auto_snowball_web_v10_34
+
       - name: Static production gate audit
         run: |
           python scripts/production_gate_audit.py \
