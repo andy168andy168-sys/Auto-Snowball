@@ -1,0 +1,8 @@
+flask
+requests
+pytest
+playwright
+loguru
+pandas
+numpy
+openpyxl
