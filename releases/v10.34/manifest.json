@@ -1,0 +1,16 @@
+{
+  "filename": "auto_snowball_web_v10_34_overview_auto_select_sync_e2e.zip",
+  "bytes": 207557,
+  "sha256": "2bc9ef2850b0f28d2cfdeb9ef6f34958c668ff265dec1d6c80a7240a2ce8eecb",
+  "base64_length": 276744,
+  "part_count": 6,
+  "part_size": 50000,
+  "parts": [
+    "part_00.b64",
+    "part_01.b64",
+    "part_02.b64",
+    "part_03.b64",
+    "part_04.b64",
+    "part_05.b64"
+  ]
+}
