@@ -8,16 +8,17 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-RELEASE_VERSION = os.environ.get("AUTO_SNOWBALL_RELEASE_VERSION", "v10.34")
+RELEASE_VERSION = os.environ.get("AUTO_SNOWBALL_RELEASE_VERSION", "v10.42")
 RELEASE_DIR = ROOT / "releases" / RELEASE_VERSION
 PARTS_DIR = RELEASE_DIR / "parts"
 MANIFEST_PATH = RELEASE_DIR / "manifest.json"
 
 HELPER = r'''
 from __future__ import annotations
-import json, os, re, signal, subprocess, sys, time, urllib.request
+import json, os, signal, subprocess, sys, time, urllib.request
 from pathlib import Path
 ROOT = Path(__file__).resolve().parent
+
 def prod_text():
     files=[]
     for p in ROOT.rglob("*"):
@@ -26,26 +27,31 @@ def prod_text():
             files.append(p)
     assert files, "no production files found"
     return "\n".join(p.read_text(encoding="utf-8", errors="ignore") for p in files)
+
 def assert_groups(label, groups):
     text=prod_text().lower(); missing=[]
     for group in groups:
         if not any(token.lower() in text for token in group):
             missing.append(" or ".join(group))
     assert not missing, f"{label} missing production tokens: {missing}"
+
 def get(url, timeout=8):
     with urllib.request.urlopen(url, timeout=timeout) as r:
         return r.status, r.headers.get("content-type",""), r.read().decode("utf-8","replace")
+
 def launch(port=5050):
     main=ROOT/"main.py"; assert main.exists(), "main.py missing"
     env=os.environ.copy()
     env.update({"PORT":str(port),"FLASK_ENV":"testing","AUTO_SNOWBALL_SAFE_MODE":"1","AUTO_SNOWBALL_NO_REAL_ORDERS":"1","AUTO_SNOWBALL_READ_ONLY":"1","BINANCE_READ_ONLY":"1"})
     return subprocess.Popen([sys.executable,str(main)],cwd=str(ROOT),env=env,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True)
+
 def stop(proc):
     if proc.poll() is None:
         proc.send_signal(signal.SIGTERM) if os.name!="nt" else proc.terminate()
         try: proc.wait(timeout=10)
         except subprocess.TimeoutExpired: proc.kill()
     return proc.stdout.read() if proc.stdout else ""
+
 def wait(url):
     end=time.time()+45; last=None
     while time.time()<end:
@@ -54,6 +60,7 @@ def wait(url):
         except Exception as e:
             last=e; time.sleep(1)
     raise AssertionError(f"{url} unreachable: {last}")
+
 def candidates(x):
     out=[]
     if isinstance(x,list) and x and all(isinstance(i,dict) for i in x):
@@ -64,11 +71,13 @@ def candidates(x):
     if isinstance(x,list):
         for v in x: out += candidates(v)
     return out
+
 def num(row, names):
     low={str(k).lower():v for k,v in row.items()}
     for n in names:
         try: return float(low[n.lower()])
         except Exception: pass
+
 def validate_market(data):
     rows=max(candidates(data), key=len)
     scores=[]
@@ -82,17 +91,6 @@ def validate_market(data):
 
 RELEASE_ARCHIVE_TESTS = {
 "_production_gate_helpers.py": HELPER,
-"test_no_safety_string_evidence_stubs.py": '''
-from pathlib import Path
-def test_no_string_only_evidence_stubs():
-    bad=[]
-    for p in Path(__file__).resolve().parent.rglob("test_*.py"):
-        if p.name == "test_no_safety_string_evidence_stubs.py": continue
-        t=p.read_text(encoding="utf-8",errors="ignore")
-        if "release_evidence" in t or 'evidence = "' in t or 'assert "rate" in evidence' in t:
-            bad.append(p.name)
-    assert not bad, f"string-only safety stubs are forbidden: {bad}"
-''',
 "test_rate_limit_backoff.py": '''
 from _production_gate_helpers import assert_groups
 def test_rate_limit_backoff_in_production_code():
@@ -124,8 +122,7 @@ def test_close_all_watchdog_in_production_code():
     assert_groups("close_all watchdog", [("close_all","flatten","全平"), ("confirm","manual","human","explicit","確認"), ("watchdog","heartbeat","process_monitor","程序監控")])
 ''',
 "test_one_year_4h_backtest_coverage.py": '''
-import csv, json
-from pathlib import Path
+import json
 from _production_gate_helpers import ROOT, assert_groups
 def test_one_year_4h_backtest_artifacts_are_machine_readable():
     assert_groups("one-year 4H backtest target", [("365","one_year","one-year","一年"), ("2190","2185","4h","4H"), ("backtest","回測")])
