@@ -1,0 +1,42 @@
+{
+  "package": "auto_snowball_web_v10_38_l1_guard_40_e2e(2).zip",
+  "synced_at": "2026-06-30T15:10:00+08:00",
+  "status": "NOT_READY_FOR_LIVE_CAPITAL",
+  "sanitized_artifact": {
+    "filename": "auto_snowball_web_v10_38_l1_guard_40_e2e_2_github_sync.zip",
+    "bytes": 320759,
+    "sha256": "eb0efe764272204db57fe85bce98f4c6ca9c0cbadd69aee35c1fffd21821d765",
+    "removed": [
+      "local credential file",
+      "python cache directories",
+      "pytest cache directory",
+      "runtime log"
+    ]
+  },
+  "sandbox_findings": {
+    "sensitive_file_in_original": true,
+    "sensitive_file_removed_in_patched": true,
+    "pytest_full_result": "TIMEOUT after 240s; not acceptable as full pass",
+    "pytest_non_browser_seen": "most non-browser tests passed before timeout; cannot claim full suite passed",
+    "playwright_result": "Chromium localhost blocked by sandbox policy; Mac LOCAL_LAUNCH_GATE required",
+    "http_5050_smoke": "PASS in sandbox after removing local credential file",
+    "market_live_sort": "PASS observed through /api/market/live",
+    "backtest_evidence": "PASS observed: API reports visible candidates with 365 days / 2190 4H bars",
+    "formula_audit": "PASS observed through /api/system/formula-audit",
+    "binance_signed_reconciliation": "BLOCKED: no signed account/order/trade/fee evidence"
+  },
+  "github_commit_a6fa6dee": {
+    "report_status": "Not ready for live capital yet",
+    "remaining_blockers": [
+      "real Binance API key intentionally not configured",
+      "small-size gray release / canary requires manual approval"
+    ],
+    "workflow_runs": "none found",
+    "combined_status": "empty"
+  },
+  "safety": [
+    "No real orders submitted",
+    "No real mode switch performed"
+  ],
+  "formal_launch": false
+}
