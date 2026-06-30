@@ -7,12 +7,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
+      AUTO_SNOWBALL_RELEASE_VERSION: "v10.42"
       AUTO_SNOWBALL_SAFE_MODE: "1"
       AUTO_SNOWBALL_NO_REAL_ORDERS: "1"
       AUTO_SNOWBALL_READ_ONLY: "1"
       BINANCE_READ_ONLY: "1"
       FLASK_ENV: "testing"
       PORT: "5050"
+      RELEASE_DIR: "releases/v10.42"
+      RELEASE_ZIP: "releases/v10.42/auto_snowball_web_v10_42_release_flat.zip"
+      RELEASE_EXTRACT_DIR: "auto_snowball_web_v10_42"
     steps:
       - uses: actions/checkout@v4
 
@@ -27,7 +31,7 @@ jobs:
           pip install -r requirements.txt
           python -m playwright install --with-deps chromium
 
-      - name: Rebuild v10.34 archive with executable safety tests
+      - name: Rebuild v10.42 archive with executable safety tests
         run: |
           mkdir -p evidence
           python scripts/rebuild_release.py | tee evidence/rebuild_release.log
@@ -35,46 +39,47 @@ jobs:
       - name: Record rebuilt archive hash
         run: |
           python - <<'PY'
-          import hashlib, json, pathlib
-          p = pathlib.Path('releases/v10.34/auto_snowball_web_v10_34_overview_auto_select_sync_e2e.zip')
+          import hashlib, json, os, pathlib
+          p = pathlib.Path(os.environ['RELEASE_ZIP'])
           if not p.exists() or p.stat().st_size <= 0:
-              raise SystemExit('rebuilt release archive missing')
+              raise SystemExit('rebuilt v10.42 release archive missing')
           actual = hashlib.sha256(p.read_bytes()).hexdigest()
-          payload = {'rebuilt_archive_sha256': actual, 'bytes': p.stat().st_size}
+          payload = {'release_version': os.environ.get('AUTO_SNOWBALL_RELEASE_VERSION'), 'rebuilt_archive_sha256': actual, 'bytes': p.stat().st_size}
           pathlib.Path('evidence/rebuilt_archive_sha256.json').write_text(json.dumps(payload, indent=2), encoding='utf-8')
           print(payload)
           PY
 
-      - name: Extract release archive
+      - name: Extract v10.42 release archive
         run: |
-          rm -rf auto_snowball_web_v10_34
-          unzip -q releases/v10.34/auto_snowball_web_v10_34_overview_auto_select_sync_e2e.zip -d auto_snowball_web_v10_34
+          rm -rf "$RELEASE_EXTRACT_DIR"
+          unzip -q "$RELEASE_ZIP" -d "$RELEASE_EXTRACT_DIR"
 
       - name: Require executable production safety tests inside archive
         run: |
-          python scripts/assert_release_tests_inside_archive.py --extract-dir auto_snowball_web_v10_34
+          python scripts/assert_release_tests_inside_archive.py --extract-dir "$RELEASE_EXTRACT_DIR"
 
       - name: Static production gate audit
         run: |
           python scripts/production_gate_audit.py \
-            --zip releases/v10.34/auto_snowball_web_v10_34_overview_auto_select_sync_e2e.zip \
-            --extract-dir auto_snowball_web_v10_34 | tee evidence/static_production_gate_audit.log
+            --zip "$RELEASE_ZIP" \
+            --extract-dir "$RELEASE_EXTRACT_DIR" | tee evidence/static_production_gate_audit.log
 
       - name: Install release dependencies
-        working-directory: auto_snowball_web_v10_34
+        working-directory: auto_snowball_web_v10_42
         run: |
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
       - name: Full non-browser pytest suite
-        working-directory: auto_snowball_web_v10_34
+        working-directory: auto_snowball_web_v10_42
         run: |
           python -m pytest -q -ra \
+            --ignore=test_browser_e2e_playwright_5050_auto_select.py \
             --ignore=test_v82_playwright_e2e.py \
             --ignore=test_v94_e2e_full_coverage.py \
             --ignore=test_v103_playwright_strategy_calculator.py | tee ../evidence/pytest_non_browser.log
 
       - name: 5050 Flask smoke and browser E2E
-        working-directory: auto_snowball_web_v10_34
+        working-directory: auto_snowball_web_v10_42
         run: |
           python main.py > ../auto_snowball_5050.log 2>&1 & echo $! > ../auto_snowball_5050.pid
           python - <<'PY'
