@@ -15,12 +15,16 @@ REQUIRED_ARCHIVE_TEST_FILES = {
     "browser E2E Playwright 5050 auto-select": ("browser", "playwright", "5050", "auto", "select"),
 }
 
+# Old string-only proof tests are forbidden. The meta-test that scans for these
+# patterns is executable and is intentionally excluded from this text scan.
 FORBIDDEN_STUB_MARKERS = (
-    "release_evidence",
-    'evidence = "',
-    'assert "rate" in evidence',
-    'assert "disconnect" in evidence',
+    "release" + "_evidence",
+    "evidence" + " = " + chr(34),
+    "assert " + chr(34) + "rate" + chr(34) + " in evidence",
+    "assert " + chr(34) + "disconnect" + chr(34) + " in evidence",
 )
+
+META_TEST_FILENAMES = {"test_no_safety_string_evidence_stubs.py"}
 
 
 def main() -> int:
@@ -46,6 +50,8 @@ def main() -> int:
             )
 
     for path in test_paths:
+        if path.name in META_TEST_FILENAMES:
+            continue
         text = path.read_text(encoding="utf-8", errors="ignore")
         if any(marker in text for marker in FORBIDDEN_STUB_MARKERS):
             failures.append(
