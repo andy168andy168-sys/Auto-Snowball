@@ -1,0 +1,30 @@
+{
+  "package": "auto_snowball_web_v10_42_launch_gate_evidence.zip",
+  "synced_at": "2026-06-30T23:57:50+08:00",
+  "status": "SYNCED_FOR_REVIEW_ONLY_NOT_READY_FOR_LIVE_CAPITAL",
+  "source": {
+    "bytes": 655826,
+    "sha256": "504d1ef96979d5bcb22c9e20a1883c1659a3d7612859324c67f178a76c344f01"
+  },
+  "sanitized_local_artifact": {
+    "filename": "auto_snowball_web_v10_42_launch_gate_evidence_sanitized.zip",
+    "bytes": 234565,
+    "sha256": "4c06e28067bf127f33344f6e735dc9d379a59fde84d5bdd249ea297839ac87f2",
+    "included_files": 108,
+    "excluded_items": 85
+  },
+  "package_claimed_results": {
+    "targeted_reconciliation_and_shared_ranking_tests": "8 passed",
+    "browser_regression": "1 passed",
+    "full_suite_isolated_read_only_runtime": "191 passed in 42.57s",
+    "final_clean_extracted_archive_rerun": "191 passed in 40.54s"
+  },
+  "github_actions_finding": {
+    "run_id": 28455811584,
+    "job_id": 84330150455,
+    "conclusion": "failure",
+    "failed_step": "Require executable production safety tests inside archive",
+    "reason": "string-only evidence stubs must be replaced by executable safety tests"
+  },
+  "formal_launch": false
+}
