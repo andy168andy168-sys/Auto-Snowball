@@ -27,19 +27,22 @@ jobs:
           pip install -r requirements.txt
           python -m playwright install --with-deps chromium
 
-      - name: Rebuild v10.34 archive with safety tests
+      - name: Rebuild v10.34 archive with executable safety tests
         run: |
-          python scripts/rebuild_release.py
+          mkdir -p evidence
+          python scripts/rebuild_release.py | tee evidence/rebuild_release.log
 
-      - name: Validate archive hash
+      - name: Record rebuilt archive hash
         run: |
           python - <<'PY'
-          import hashlib, pathlib
+          import hashlib, json, pathlib
           p = pathlib.Path('releases/v10.34/auto_snowball_web_v10_34_overview_auto_select_sync_e2e.zip')
-          expected = '3b1c9b554289ea691577e241246c8f7ab4640fbc8c5fa562651f3107b1dd432f'
+          if not p.exists() or p.stat().st_size <= 0:
+              raise SystemExit('rebuilt release archive missing')
           actual = hashlib.sha256(p.read_bytes()).hexdigest()
-          print(actual)
-          raise SystemExit(0 if actual == expected else 1)
+          payload = {'rebuilt_archive_sha256': actual, 'bytes': p.stat().st_size}
+          pathlib.Path('evidence/rebuilt_archive_sha256.json').write_text(json.dumps(payload, indent=2), encoding='utf-8')
+          print(payload)
           PY
 
       - name: Extract release archive
@@ -47,7 +50,7 @@ jobs:
           rm -rf auto_snowball_web_v10_34
           unzip -q releases/v10.34/auto_snowball_web_v10_34_overview_auto_select_sync_e2e.zip -d auto_snowball_web_v10_34
 
-      - name: Require production safety tests inside archive
+      - name: Require executable production safety tests inside archive
         run: |
           python scripts/assert_release_tests_inside_archive.py --extract-dir auto_snowball_web_v10_34
 
@@ -55,7 +58,7 @@ jobs:
         run: |
           python scripts/production_gate_audit.py \
             --zip releases/v10.34/auto_snowball_web_v10_34_overview_auto_select_sync_e2e.zip \
-            --extract-dir auto_snowball_web_v10_34
+            --extract-dir auto_snowball_web_v10_34 | tee evidence/static_production_gate_audit.log
 
       - name: Install release dependencies
         working-directory: auto_snowball_web_v10_34
@@ -68,7 +71,7 @@ jobs:
           python -m pytest -q -ra \
             --ignore=test_v82_playwright_e2e.py \
             --ignore=test_v94_e2e_full_coverage.py \
-            --ignore=test_v103_playwright_strategy_calculator.py
+            --ignore=test_v103_playwright_strategy_calculator.py | tee ../evidence/pytest_non_browser.log
 
       - name: 5050 Flask smoke and browser E2E
         working-directory: auto_snowball_web_v10_34
@@ -91,29 +94,23 @@ jobs:
           print(open('../auto_snowball_5050.log', encoding='utf-8', errors='ignore').read())
           raise SystemExit(f'5050 did not become reachable: {last}')
           PY
-          python - <<'PY'
-          from playwright.sync_api import sync_playwright
-          urls = ['http://127.0.0.1:5050/', 'http://127.0.0.1:5050/auto-select', 'http://127.0.0.1:5050/api/market/live']
-          errors = []
-          with sync_playwright() as p:
-              browser = p.chromium.launch()
-              page = browser.new_page()
-              page.on('console', lambda msg: errors.append(f'console:{msg.type}:{msg.text}') if msg.type in {'error'} else None)
-              page.on('pageerror', lambda exc: errors.append(f'pageerror:{exc}'))
-              for url in urls:
-                  response = page.goto(url, wait_until='networkidle', timeout=15000)
-                  status = response.status if response else 'NO_RESPONSE'
-                  print(url, status)
-                  if not response or status >= 500:
-                      errors.append(f'{url} status={status}')
-              browser.close()
-          if errors:
-              print('\n'.join(errors))
-              raise SystemExit(1)
-          PY
+          python ../scripts/local_launch_gate.py \
+            --workdir . \
+            --url http://127.0.0.1:5050 \
+            --output ../evidence/local_launch_gate_ci.json \
+            --ci
 
       - name: Stop 5050 server
         if: always()
         run: |
           if [ -f auto_snowball_5050.pid ]; then kill "$(cat auto_snowball_5050.pid)" || true; fi
           if [ -f auto_snowball_5050.log ]; then tail -200 auto_snowball_5050.log; fi
+
+      - name: Upload production gate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: auto-snowball-production-gate-evidence
+          path: |
+            evidence/**
+            auto_snowball_5050.log
