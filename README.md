@@ -2,26 +2,25 @@
 
 Auto Snowball Web release archive for USDC futures rolling strategy monitoring.
 
-## Current CI repair branch
+## Current release target
 
-- Branch: `sync-v10-37-release-archive`
-- Base package: `releases/v10.34/auto_snowball_web_v10_34_overview_auto_select_sync_e2e.zip`
-- Base SHA256 before safety-test injection: `2bc9ef2850b0f28d2cfdeb9ef6f34958c668ff265dec1d6c80a7240a2ce8eecb`
-- CI rebuilt SHA256 after injecting required release-archive safety tests: `3b1c9b554289ea691577e241246c8f7ab4640fbc8c5fa562651f3107b1dd432f`
+- Release version: `v10.42`
+- Release manifest: `releases/v10.42/manifest.json`
+- Release archive filename: `auto_snowball_web_v10_42_release_flat.zip`
+- Source package SHA256 before safety-test injection: `f8371c1c485e7dd672dcec7a0d8c36ab0aa600bff4dbe1895dbf37bdca23e7c3`
+- CI mode: safe / read-only only
 
-## Main v10.34 changes
+## Main v10.42 changes
 
-- Overview page and auto-select page use the same final ranking source.
-- Overview top ten refreshes from `/api/market/live`.
-- One-year column is unified as one-year backtest level.
-- Current formulas remain D/E:
-  - Dense zone = six-line center ±1.5%.
-  - Stop loss = capital × stop-loss percent.
-  - Profit guard = triggered target × 80%.
+- GitHub Actions release CI now targets `v10.42` instead of the old release archive.
+- Overview and auto-select use the same final ranking source.
+- Reconciliation evidence exposes structured data-quality status and concrete per-symbol issues.
+- Runtime rendering avoids first-paint blocking while evidence APIs still enforce full hydration.
+- This sync does not approve real trading.
 
 ## Release archive safety-test gate
 
-The release CI rebuilds the v10.34 archive from base64 parts and injects pytest files required by `scripts/assert_release_tests_inside_archive.py` directly into the ZIP before hash validation and extraction.
+The release CI rebuilds the `v10.42` archive and injects pytest files required by `scripts/assert_release_tests_inside_archive.py` directly into the ZIP before hash validation and extraction.
 
 Injected release-only safety evidence covers:
 
@@ -31,17 +30,19 @@ Injected release-only safety evidence covers:
 - timeout query-order recovery
 - circuit breaker
 - close-all / process monitor / watchdog
+- one-year 4H backtest coverage
+- formula consistency
 - browser E2E / Playwright / 5050 / auto-select evidence
 
 ## Restore release zip
 
 ```bash
-python scripts/rebuild_release.py
-unzip releases/v10.34/auto_snowball_web_v10_34_overview_auto_select_sync_e2e.zip -d auto_snowball_web_v10_34
-cd auto_snowball_web_v10_34
+AUTO_SNOWBALL_RELEASE_VERSION=v10.42 python scripts/rebuild_release.py
+unzip releases/v10.42/auto_snowball_web_v10_42_release_flat.zip -d auto_snowball_web_v10_42
+cd auto_snowball_web_v10_42
 python -m pip install -r requirements.txt
 pytest -q
 python main.py
 ```
 
-Runtime cache/state and local secrets are not committed.
+Runtime cache/state and local-only files are not committed.
