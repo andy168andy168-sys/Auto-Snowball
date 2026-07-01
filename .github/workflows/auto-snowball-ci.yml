@@ -33,6 +33,7 @@ jobs:
 
       - name: Rebuild v10.43 archive with executable safety tests
         run: |
+          set -o pipefail
           mkdir -p evidence
           mkdir -p "$RELEASE_DIR"
           python scripts/rebuild_release.py | tee evidence/rebuild_release.log
@@ -66,6 +67,7 @@ jobs:
 
       - name: Static production gate audit
         run: |
+          set -o pipefail
           python scripts/production_gate_audit.py \
             --zip "$RELEASE_ZIP" \
             --extract-dir "$RELEASE_EXTRACT_DIR" | tee evidence/static_production_gate_audit.log
@@ -78,15 +80,22 @@ jobs:
       - name: Full non-browser pytest suite
         working-directory: auto_snowball_web_v10_43
         run: |
+          set -o pipefail
           python -m pytest -q -ra \
             --ignore=test_browser_e2e_playwright_5050_auto_select.py \
+            --ignore=test_v148_browser_playwright_5050_auto_select.py \
             --ignore=test_v82_playwright_e2e.py \
             --ignore=test_v94_e2e_full_coverage.py \
             --ignore=test_v103_playwright_strategy_calculator.py | tee ../evidence/pytest_non_browser.log
 
       - name: 5050 Flask smoke and browser E2E
-        working-directory: auto_snowball_web_v10_42
+        working-directory: auto_snowball_web_v10_43
         run: |
+          python -m pytest -q \
+            test_browser_e2e_playwright_5050_auto_select.py \
+            test_v82_playwright_e2e.py \
+            test_v94_e2e_full_coverage.py \
+            test_v103_playwright_strategy_calculator.py
           python main.py > ../auto_snowball_5050.log 2>&1 & echo $! > ../auto_snowball_5050.pid
           python - <<'PY'
           import sys, time, urllib.error, urllib.request
@@ -105,6 +114,7 @@ jobs:
           print(open('../auto_snowball_5050.log', encoding='utf-8', errors='ignore').read())
           raise SystemExit(f'5050 did not become reachable: {last}')
           PY
+          python -m pytest -q test_v148_browser_playwright_5050_auto_select.py
           python ../scripts/local_launch_gate.py \
             --workdir . \
             --url http://127.0.0.1:5050 \

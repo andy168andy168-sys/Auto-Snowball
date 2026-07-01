@@ -21,11 +21,44 @@ CI remains in safe, no-real-orders, read-only mode. This repair does not configu
 
 ## Local verification
 
-- Base archive SHA256: `6d078b880b4905d8570bd3f7096a41e382bbf03cbdfc124e3fb64d4b2094ebf2`.
-- Rebuilt archive SHA256 after safety-test injection: `1017aa6eadad6e9e410173e24fa71b0d69b49dd4bd868c104df96ff8e37a3f84`.
+- Base archive SHA256: `4cb6161ec59e8635439a78c2a48561ed722b55722acaab579ead64d98add1072`.
+- Rebuilt archive SHA256 after safety-test injection: `42bd03b73c9d0a94b960ef36163ed99bff36e839ab0999f3705f9bc046f8c81a`.
 - Release archive test placement: `PASS`.
 - Static production-gate audit: `PASS`.
-- Rebuilt archive non-browser suite: `191 passed`.
-- Workspace gate regression tests: `8 passed`.
+- Rebuilt archive non-browser suite with all browser-dependent tests excluded: `192 passed`.
+- Self-contained browser suites: `10 passed`; active-5050 ranking synchronization browser test: `1 passed`.
+- Workspace gate regression tests: `12 passed`.
 - Active 5050 CI gate: `PASS`; formal API credentials and manual canary remain informational CI items and blocking production-preflight items.
 - Rebuilt archive isolated browser E2E on 5051: seven main pages loaded, 10 ranking rows rendered, dynamic refresh advanced, and browser warnings/errors were empty.
+
+## GitHub Actions run 102 follow-up
+
+- The original rebuild/hash failure was fixed; rebuild, hash, extraction, archive placement, static audit, and non-browser command all reached completion.
+- Run 102 exposed a stale `auto_snowball_web_v10_42` working directory in the 5050 step.
+- It also exposed that `test_v148_browser_playwright_5050_auto_select.py` was still collected before the workflow started the 5050 server; the failure was hidden by `pytest | tee` because `pipefail` was not enabled.
+- The workflow now enables `pipefail`, excludes all browser-dependent tests from the non-browser suite, runs the self-contained browser tests explicitly, starts the 5050 server from the V10.43 directory, then runs the active-5050 browser test and local launch gate.
+
+## GitHub Actions run 106 follow-up
+
+- The corrected V10.43 working directory, rebuild/hash, archive checks, static audit, and strict non-browser suite passed.
+- Explicit execution exposed an invalid generated generic browser test: the outer Python string had expanded `"\\n"` into a literal newline inside the injected source.
+- The generator now preserves the escaped newline, compiles every injected Python file before writing the ZIP, and has a workspace regression test covering all injected files.
+- `AUTO_SNOWBALL_E2E_PORT` permits an isolated local port while CI continues to default to required port 5050.
+- Rebuilt generic browser gate on isolated port 5052: `1 passed`.
+
+## GitHub Actions run 108 follow-up
+
+- All explicit browser tests and the V10.43 5050 server startup passed.
+- The final local gate correctly rejected CI cold-start fallback rows because their runtime backtest cache was empty.
+- CI now keeps ranking/live-field/dynamic-refresh checks strict and separately requires bundled machine-readable evidence to cover every visible cold-start symbol; production/local runs still require the live runtime backtest endpoint itself to pass.
+- The bundled evidence covers 14 active and cold-start symbols with 2190 bars / 365 days / 4H metadata.
+- The invalid `TONUSDC` cold-start fallback was replaced with `TIAUSDC`; Binance public USDⓈ-M Futures verification returned 2190 one-year 4H bars for every cold-start symbol.
+- Browser E2E navigates only the HTML pages after the market API has already been validated over HTTP, avoiding a duplicate cold-start history hydration; navigation exceptions are recorded as gate failures instead of escaping as tracebacks.
+- Live ranking now merges cached backtest evidence immediately and schedules missing one-year 4H hydration in one background worker, so a cold `/api/market/live` request cannot block on ten paginated Binance history calls.
+- Final cold-start CI-equivalent gate on isolated port 5053: `PASS`; final browser groups: generic `1 passed`, self-contained suites `10 passed`, active-5050 v148 `1 passed`.
+
+## GitHub Actions run 110 follow-up
+
+- Rebuild/hash, archive checks, strict non-browser tests, generic browser tests, and the V10.43 server startup passed.
+- v148 observed the same 10 candidate symbols on home and auto-select, with both pages descending by score, but background evidence completion legitimately changed the order of three nearby rows between navigations.
+- v148 now requires each page to be independently score-sorted and both pages to expose the same candidate set; it no longer assumes two live snapshots taken at different times must have byte-identical ordering.
