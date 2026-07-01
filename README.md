@@ -4,15 +4,17 @@ Auto Snowball Web release archive for USDC futures rolling strategy monitoring.
 
 ## Current release target
 
-- Release version: `v10.42`
-- Release manifest: `releases/v10.42/manifest.json`
-- Release archive filename: `auto_snowball_web_v10_42_release_flat.zip`
-- Source package SHA256 before safety-test injection: `f8371c1c485e7dd672dcec7a0d8c36ab0aa600bff4dbe1895dbf37bdca23e7c3`
+- Release version: `v10.43`
+- Release manifest: `releases/v10.43/manifest.json`
+- Release archive filename: `auto_snowball_web_v10_43_candidate_history_gate.zip`
+- Source package SHA256 before safety-test injection: `6d078b880b4905d8570bd3f7096a41e382bbf03cbdfc124e3fb64d4b2094ebf2`
 - CI mode: safe / read-only only
 
-## Main v10.42 changes
+## Main v10.43 changes
 
-- GitHub Actions release CI now targets `v10.42` instead of the old release archive.
+- GitHub Actions release CI now targets the complete `v10.43` manifest and seven base64 parts.
+- Visible non-held candidates with less than 365 days / 2190 bars of 4H history are excluded before ranking; held symbols remain visible and launch-blocking.
+- The release includes `backtest_evidence_v10_43.json` for all 10 visible candidates using the runtime's machine-readable 365-day / 2190-bar / 4H evidence contract.
 - Overview and auto-select use the same final ranking source.
 - Reconciliation evidence exposes structured data-quality status and concrete per-symbol issues.
 - Runtime rendering avoids first-paint blocking while evidence APIs still enforce full hydration.
@@ -20,7 +22,7 @@ Auto Snowball Web release archive for USDC futures rolling strategy monitoring.
 
 ## Release archive safety-test gate
 
-The release CI rebuilds the `v10.42` archive and injects pytest files required by `scripts/assert_release_tests_inside_archive.py` directly into the ZIP before hash validation and extraction.
+The release CI rebuilds the `v10.43` archive and injects pytest files required by `scripts/assert_release_tests_inside_archive.py` directly into the ZIP before hash validation and extraction.
 
 Injected release-only safety evidence covers:
 
@@ -37,9 +39,9 @@ Injected release-only safety evidence covers:
 ## Restore release zip
 
 ```bash
-AUTO_SNOWBALL_RELEASE_VERSION=v10.42 python scripts/rebuild_release.py
-unzip releases/v10.42/auto_snowball_web_v10_42_release_flat.zip -d auto_snowball_web_v10_42
-cd auto_snowball_web_v10_42
+AUTO_SNOWBALL_RELEASE_VERSION=v10.43 python scripts/rebuild_release.py
+unzip releases/v10.43/auto_snowball_web_v10_43_candidate_history_gate.zip -d auto_snowball_web_v10_43
+cd auto_snowball_web_v10_43
 python -m pip install -r requirements.txt
 pytest -q
 python main.py

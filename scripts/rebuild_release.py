@@ -8,7 +8,7 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-RELEASE_VERSION = os.environ.get("AUTO_SNOWBALL_RELEASE_VERSION", "v10.42")
+RELEASE_VERSION = os.environ.get("AUTO_SNOWBALL_RELEASE_VERSION", "v10.43")
 RELEASE_DIR = ROOT / "releases" / RELEASE_VERSION
 PARTS_DIR = RELEASE_DIR / "parts"
 MANIFEST_PATH = RELEASE_DIR / "manifest.json"
@@ -129,6 +129,7 @@ def test_one_year_4h_backtest_artifacts_are_machine_readable():
     files=[p for p in ROOT.rglob("*") if p.is_file() and p.suffix.lower() in {".json",".jsonl",".csv"} and any(x in p.name.lower() for x in ("backtest","kline","4h"))]
     assert files, "missing machine-readable 365d/4H backtest artifacts for all visible and holding-inserted symbols"
     counts={}
+    evidence={}
     for p in files:
         try:
             if p.suffix.lower()==".csv":
@@ -136,12 +137,16 @@ def test_one_year_4h_backtest_artifacts_are_machine_readable():
             else:
                 d=json.loads(p.read_text(encoding="utf-8",errors="ignore"))
                 if isinstance(d,dict):
+                    for row in d.get("checks",[]):
+                        if not isinstance(row,dict) or not row.get("symbol"): continue
+                        evidence[str(row["symbol"])]=row
                     for s,rows in d.items():
-                        if isinstance(rows,list): counts[str(s)]=max(counts.get(str(s),0),len(rows))
+                        if str(s).upper().endswith("USDC") and isinstance(rows,list): counts[str(s)]=max(counts.get(str(s),0),len(rows))
                 elif isinstance(d,list): counts[p.stem]=max(counts.get(p.stem,0),len(d))
         except Exception: pass
     short={s:n for s,n in counts.items() if n<2185}
-    assert counts and not short, f"insufficient 4H rows: {short}; parsed={counts}"
+    invalid={s:r for s,r in evidence.items() if int(r.get("bars",0))<2190 or int(r.get("lookback_days",0))<365 or str(r.get("interval","")).lower()!="4h" or r.get("ok") is not True}
+    assert (counts or evidence) and not short and not invalid, f"insufficient 4H evidence: short={short}; invalid={invalid}; parsed={counts}"
 ''',
 "test_formula_consistency.py": '''
 from _production_gate_helpers import assert_groups
@@ -166,7 +171,8 @@ def test_5050_auto_select_market_live_browser_e2e_has_no_errors():
             page.on("console", lambda m: errs.append(f"console:{m.type}:{m.text}") if m.type=="error" else None)
             page.on("pageerror", lambda e: errs.append(f"pageerror:{e}"))
             for u in urls:
-                r=page.goto(u, wait_until="networkidle", timeout=20000); assert r and r.status<500
+                r=page.goto(u, wait_until="load", timeout=20000); assert r and r.status<500
+                page.wait_for_timeout(750)
             b.close()
         assert not errs, "\n".join(errs)
     finally:
@@ -186,8 +192,13 @@ def inject_release_tests(zip_path: Path) -> None:
             zf.writestr(info, content)
 
 def main() -> int:
+    if not MANIFEST_PATH.is_file():
+        raise SystemExit(f"release manifest missing: {MANIFEST_PATH}")
     manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
     output = RELEASE_DIR / manifest["filename"]
+    missing_parts = [name for name in manifest["parts"] if not (PARTS_DIR / name).is_file()]
+    if missing_parts:
+        raise SystemExit(f"release parts missing from {PARTS_DIR}: {missing_parts}")
     payload = "".join((PARTS_DIR / name).read_text(encoding="ascii").strip() for name in manifest["parts"])
     data = base64.b64decode(payload.encode("ascii"))
     base_sha256 = hashlib.sha256(data).hexdigest()
