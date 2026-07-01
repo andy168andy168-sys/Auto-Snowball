@@ -25,7 +25,15 @@ CI remains in safe, no-real-orders, read-only mode. This repair does not configu
 - Rebuilt archive SHA256 after safety-test injection: `1017aa6eadad6e9e410173e24fa71b0d69b49dd4bd868c104df96ff8e37a3f84`.
 - Release archive test placement: `PASS`.
 - Static production-gate audit: `PASS`.
-- Rebuilt archive non-browser suite: `191 passed`.
+- Rebuilt archive non-browser suite with all browser-dependent tests excluded: `190 passed`.
+- Self-contained browser suites: `10 passed`; active-5050 ranking synchronization browser test: `1 passed`.
 - Workspace gate regression tests: `8 passed`.
 - Active 5050 CI gate: `PASS`; formal API credentials and manual canary remain informational CI items and blocking production-preflight items.
 - Rebuilt archive isolated browser E2E on 5051: seven main pages loaded, 10 ranking rows rendered, dynamic refresh advanced, and browser warnings/errors were empty.
+
+## GitHub Actions run 102 follow-up
+
+- The original rebuild/hash failure was fixed; rebuild, hash, extraction, archive placement, static audit, and non-browser command all reached completion.
+- Run 102 exposed a stale `auto_snowball_web_v10_42` working directory in the 5050 step.
+- It also exposed that `test_v148_browser_playwright_5050_auto_select.py` was still collected before the workflow started the 5050 server; the failure was hidden by `pytest | tee` because `pipefail` was not enabled.
+- The workflow now enables `pipefail`, excludes all browser-dependent tests from the non-browser suite, runs the self-contained browser tests explicitly, starts the 5050 server from the V10.43 directory, then runs the active-5050 browser test and local launch gate.
