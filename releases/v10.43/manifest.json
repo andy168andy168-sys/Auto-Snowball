@@ -1,0 +1,17 @@
+{
+  "filename": "auto_snowball_web_v10_43_release_flat.zip",
+  "bytes": 225553,
+  "sha256": "2f5ee70a920c287aacad00e34b409c223ccbeba5696bbbd24778393f0805dc5a",
+  "base64_length": 300740,
+  "part_count": 7,
+  "part_size": 50000,
+  "parts": [
+    "part_00.b64",
+    "part_01.b64",
+    "part_02.b64",
+    "part_03.b64",
+    "part_04.b64",
+    "part_05.b64",
+    "part_06.b64"
+  ]
+}
