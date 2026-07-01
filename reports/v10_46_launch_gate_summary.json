@@ -1,0 +1,54 @@
+{
+  "version": "10.46",
+  "created_at": "2026-07-01T14:45:28+08:00",
+  "source_package": "auto_snowball_web_v10_45_l1_guard_20.zip",
+  "new_package": "auto_snowball_web_v10_46_5050_nonblocking_gate.zip",
+  "decision": "NOT_READY_FOR_LIVE_CAPITAL",
+  "no_real_order_submitted": true,
+  "real_trading_mode_enabled": false,
+  "runtime": {
+    "host": "127.0.0.1",
+    "port": 5050,
+    "port_ok": true,
+    "cwd": "/mnt/data/auto_v10_45_work/auto_snowball_web_v10_45_l1_guard_20",
+    "expected_primary_workdir": "/Users/andyna/Documents/自動滾倉系統設計"
+  },
+  "http_5050_smoke_ok": true,
+  "ranking": {
+    "sorted_by_final_score_desc": true,
+    "symbols": ["TIAUSDC", "ETHUSDC", "AVAXUSDC", "KAITOUSDC", "ORDIUSDC", "BTCUSDC", "DOGEUSDC", "BNBUSDC", "XRPUSDC", "1000PEPEUSDC"],
+    "scores": [53.79, 35.89, 27.66, 22.52, 20.01, 19.44, 16.4, 16.3, 15.93, 12.64]
+  },
+  "backtest_evidence": {
+    "ok": true,
+    "visible_count": 10,
+    "required_days": 365,
+    "required_min_4h_bars": 2190,
+    "all_visible_symbols_have_required_evidence": true
+  },
+  "formula_audit": {
+    "ok": true,
+    "dense_zone": "six_line_center ±1.5%, total width 3%",
+    "l1_profit_guard": "trigger +20%, floor +16%, protection ratio 80%",
+    "stop_loss": "capital * max_loss_pct / 100, default 10%"
+  },
+  "pytest": {
+    "full": "192 passed, 12 skipped in 14.36s",
+    "non_browser": "192 passed, 12 deselected in 1.04s",
+    "safety_targeted": "21 passed in 0.71s",
+    "ranking_backtest_formula_targeted": "18 passed in 0.57s"
+  },
+  "browser_e2e": {
+    "counted_as_pass": false,
+    "reason": "sandbox Chromium blocks localhost navigation with ERR_BLOCKED_BY_ADMINISTRATOR"
+  },
+  "binance_reconciliation": {
+    "dataQuality_ok": false,
+    "issues": ["account_ok=false", "balance_ok=false", "orders_ok=false", "symbol endpoint failures for premiumIndex/commissionRate/leverageBracket/userTrades/income/orders"]
+  },
+  "launch_preflight": {
+    "ok": false,
+    "blocking_items": ["正式 API 金鑰已設定", "即時 Mark Price 新鮮", "小額灰度需手動確認"]
+  },
+  "package_note": "Archive sha256 is computed externally after packaging; final local sha256: 3ebbc9567642bf56bd1dac965060047a69018a85b1f5a809d2e41ce5554a80d9."
+}
