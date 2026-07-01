@@ -7,7 +7,7 @@ Auto Snowball Web release archive for USDC futures rolling strategy monitoring.
 - Release version: `v10.43`
 - Release manifest: `releases/v10.43/manifest.json`
 - Release archive filename: `auto_snowball_web_v10_43_candidate_history_gate.zip`
-- Source package SHA256 before safety-test injection: `f73067313cae9f5f0a7d65986a61c551ef4717218ee9a8aa22022412cf7796ad`
+- Source package SHA256 before safety-test injection: `4cb6161ec59e8635439a78c2a48561ed722b55722acaab579ead64d98add1072`
 - CI mode: safe / read-only only
 
 ## Main v10.43 changes

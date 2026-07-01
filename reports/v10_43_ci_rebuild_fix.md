@@ -21,8 +21,8 @@ CI remains in safe, no-real-orders, read-only mode. This repair does not configu
 
 ## Local verification
 
-- Base archive SHA256: `f73067313cae9f5f0a7d65986a61c551ef4717218ee9a8aa22022412cf7796ad`.
-- Rebuilt archive SHA256 after safety-test injection: `56baf7f11460bebf470cb1b16342cf2920dba9cc8a9ae16b2477183aded87228`.
+- Base archive SHA256: `4cb6161ec59e8635439a78c2a48561ed722b55722acaab579ead64d98add1072`.
+- Rebuilt archive SHA256 after safety-test injection: `42bd03b73c9d0a94b960ef36163ed99bff36e839ab0999f3705f9bc046f8c81a`.
 - Release archive test placement: `PASS`.
 - Static production-gate audit: `PASS`.
 - Rebuilt archive non-browser suite with all browser-dependent tests excluded: `192 passed`.
@@ -56,3 +56,9 @@ CI remains in safe, no-real-orders, read-only mode. This repair does not configu
 - Browser E2E navigates only the HTML pages after the market API has already been validated over HTTP, avoiding a duplicate cold-start history hydration; navigation exceptions are recorded as gate failures instead of escaping as tracebacks.
 - Live ranking now merges cached backtest evidence immediately and schedules missing one-year 4H hydration in one background worker, so a cold `/api/market/live` request cannot block on ten paginated Binance history calls.
 - Final cold-start CI-equivalent gate on isolated port 5053: `PASS`; final browser groups: generic `1 passed`, self-contained suites `10 passed`, active-5050 v148 `1 passed`.
+
+## GitHub Actions run 110 follow-up
+
+- Rebuild/hash, archive checks, strict non-browser tests, generic browser tests, and the V10.43 server startup passed.
+- v148 observed the same 10 candidate symbols on home and auto-select, with both pages descending by score, but background evidence completion legitimately changed the order of three nearby rows between navigations.
+- v148 now requires each page to be independently score-sorted and both pages to expose the same candidate set; it no longer assumes two live snapshots taken at different times must have byte-identical ordering.
