@@ -1,0 +1,11 @@
+{
+  "version": "10.48",
+  "name": "auto_snowball_web_v10_48_live_gate_machine_readable_e2e",
+  "zip_filename": "auto_snowball_web_v10_48_live_gate_machine_readable_e2e.zip",
+  "zip_size_bytes": 292272,
+  "checksum_file": "auto_snowball_web_v10_48_live_gate_machine_readable_e2e.sha256.txt",
+  "dense_zone": "center +/- 1%, total width 2%",
+  "tests": "196 passed, 12 skipped",
+  "browser_e2e": "6 skipped in sandbox",
+  "status": "blocked"
+}
