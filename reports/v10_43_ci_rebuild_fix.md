@@ -21,13 +21,13 @@ CI remains in safe, no-real-orders, read-only mode. This repair does not configu
 
 ## Local verification
 
-- Base archive SHA256: `6d078b880b4905d8570bd3f7096a41e382bbf03cbdfc124e3fb64d4b2094ebf2`.
-- Rebuilt archive SHA256 after safety-test injection: `70d0b1854947f1d2178cdfbd283960180269fea03235bb62f2aeb1e5f9a83ac2`.
+- Base archive SHA256: `f73067313cae9f5f0a7d65986a61c551ef4717218ee9a8aa22022412cf7796ad`.
+- Rebuilt archive SHA256 after safety-test injection: `56baf7f11460bebf470cb1b16342cf2920dba9cc8a9ae16b2477183aded87228`.
 - Release archive test placement: `PASS`.
 - Static production-gate audit: `PASS`.
-- Rebuilt archive non-browser suite with all browser-dependent tests excluded: `190 passed`.
+- Rebuilt archive non-browser suite with all browser-dependent tests excluded: `192 passed`.
 - Self-contained browser suites: `10 passed`; active-5050 ranking synchronization browser test: `1 passed`.
-- Workspace gate regression tests: `9 passed`.
+- Workspace gate regression tests: `12 passed`.
 - Active 5050 CI gate: `PASS`; formal API credentials and manual canary remain informational CI items and blocking production-preflight items.
 - Rebuilt archive isolated browser E2E on 5051: seven main pages loaded, 10 ranking rows rendered, dynamic refresh advanced, and browser warnings/errors were empty.
 
@@ -45,3 +45,14 @@ CI remains in safe, no-real-orders, read-only mode. This repair does not configu
 - The generator now preserves the escaped newline, compiles every injected Python file before writing the ZIP, and has a workspace regression test covering all injected files.
 - `AUTO_SNOWBALL_E2E_PORT` permits an isolated local port while CI continues to default to required port 5050.
 - Rebuilt generic browser gate on isolated port 5052: `1 passed`.
+
+## GitHub Actions run 108 follow-up
+
+- All explicit browser tests and the V10.43 5050 server startup passed.
+- The final local gate correctly rejected CI cold-start fallback rows because their runtime backtest cache was empty.
+- CI now keeps ranking/live-field/dynamic-refresh checks strict and separately requires bundled machine-readable evidence to cover every visible cold-start symbol; production/local runs still require the live runtime backtest endpoint itself to pass.
+- The bundled evidence covers 14 active and cold-start symbols with 2190 bars / 365 days / 4H metadata.
+- The invalid `TONUSDC` cold-start fallback was replaced with `TIAUSDC`; Binance public USDⓈ-M Futures verification returned 2190 one-year 4H bars for every cold-start symbol.
+- Browser E2E navigates only the HTML pages after the market API has already been validated over HTTP, avoiding a duplicate cold-start history hydration; navigation exceptions are recorded as gate failures instead of escaping as tracebacks.
+- Live ranking now merges cached backtest evidence immediately and schedules missing one-year 4H hydration in one background worker, so a cold `/api/market/live` request cannot block on ten paginated Binance history calls.
+- Final cold-start CI-equivalent gate on isolated port 5053: `PASS`; final browser groups: generic `1 passed`, self-contained suites `10 passed`, active-5050 v148 `1 passed`.

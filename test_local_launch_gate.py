@@ -45,6 +45,34 @@ def test_market_validator_rejects_rank_drift():
     assert "expected 2" in detail
 
 
+def test_ci_market_validator_defers_backtest_to_bundled_artifact():
+    payload = market_payload()
+    for row in payload["coins"]:
+        row.pop("backtest_kline_bars")
+        row.pop("backtest_lookback_days")
+        row.pop("backtest_kline_interval")
+    ok, detail = local_launch_gate.validate_market(payload, require_backtest=False)
+    assert ok, detail
+
+
+def test_ci_backtest_artifact_must_cover_every_visible_symbol(tmp_path):
+    evidence = {
+        "checks": [
+            {"symbol": "BTCUSDC", "bars": 2190, "lookback_days": 365, "interval": "4h", "ok": True},
+            {"symbol": "ETHUSDC", "bars": 2190, "lookback_days": 365, "interval": "4h", "ok": True},
+        ]
+    }
+    (tmp_path / "backtest_evidence_v10_43.json").write_text(__import__("json").dumps(evidence), encoding="utf-8")
+    ok, detail = local_launch_gate.validate_backtest_artifact(tmp_path, market_payload())
+    assert ok, detail
+
+    evidence["checks"].pop()
+    (tmp_path / "backtest_evidence_v10_43.json").write_text(__import__("json").dumps(evidence), encoding="utf-8")
+    ok, detail = local_launch_gate.validate_backtest_artifact(tmp_path, market_payload())
+    assert not ok
+    assert "ETHUSDC" in detail
+
+
 def test_market_refresh_accepts_new_timestamp_with_synchronized_rows():
     before = market_payload()
     before["updated_at"] = "2026-06-30 23:00:00"
@@ -121,6 +149,11 @@ def test_reconciliation_checks_status_objects_and_derivable_leverage(monkeypatch
 def test_browser_gate_avoids_networkidle_wait():
     source = local_launch_gate.run_playwright.__code__.co_consts
     assert "networkidle" not in source
+
+
+def test_ci_browser_gate_does_not_repeat_market_api_navigation():
+    source = __import__("inspect").getsource(local_launch_gate.main)
+    assert "run_playwright(urls[:2])" in source
 
 
 def test_injected_release_gate_files_compile():

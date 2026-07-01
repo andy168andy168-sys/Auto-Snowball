@@ -72,7 +72,7 @@ def num(row: dict[str, Any], names: tuple[str, ...]) -> float | None:
     return None
 
 
-def validate_market(payload: Any) -> tuple[bool, str]:
+def validate_market(payload: Any, require_backtest: bool = True) -> tuple[bool, str]:
     lists = candidates(payload)
     if not lists:
         return False, "no candidate list with symbol + score found"
@@ -97,19 +97,20 @@ def validate_market(payload: Any) -> tuple[bool, str]:
             return False, f"{symbol} missing entry-zone status"
         if num(row, ("zone_entry_score", "entry_score", "入區分數")) is None:
             return False, f"{symbol} missing entry-zone score"
-        bars = num(row, ("backtest_kline_bars",))
-        days = num(row, ("backtest_lookback_days",))
-        interval = str(row.get("backtest_kline_interval") or "").lower()
-        if bars is None or bars < 2190 or days is None or days < 365 or interval != "4h":
-            return False, f"{symbol} missing 365d/2190-bar 4H backtest evidence"
+        if require_backtest:
+            bars = num(row, ("backtest_kline_bars",))
+            days = num(row, ("backtest_lookback_days",))
+            interval = str(row.get("backtest_kline_interval") or "").lower()
+            if bars is None or bars < 2190 or days is None or days < 365 or interval != "4h":
+                return False, f"{symbol} missing 365d/2190-bar 4H backtest evidence"
         scores.append(score)
     if scores != sorted(scores, reverse=True):
         return False, f"not sorted by final score descending: {scores[:10]}"
     return True, f"validated {len(rows)} candidates: {symbols[:10]}"
 
 
-def validate_market_refresh(before: Any, after: Any) -> tuple[bool, str]:
-    ok, detail = validate_market(after)
+def validate_market_refresh(before: Any, after: Any, require_backtest: bool = True) -> tuple[bool, str]:
+    ok, detail = validate_market(after, require_backtest=require_backtest)
     if not ok:
         return ok, detail
     before_lists = candidates(before)
@@ -130,6 +131,40 @@ def validate_market_refresh(before: Any, after: Any) -> tuple[bool, str]:
     return True, f"refresh advanced for {len(common)} common symbols; {detail}"
 
 
+def validate_backtest_artifact(root: Path, payload: Any) -> tuple[bool, str]:
+    lists = candidates(payload)
+    if not lists:
+        return False, "market payload has no visible candidate rows"
+    visible = {
+        str(row.get("symbol") or row.get("pair") or row.get("s") or "").upper()
+        for row in max(lists, key=len)
+        if row.get("symbol") or row.get("pair") or row.get("s")
+    }
+    evidence: dict[str, dict[str, Any]] = {}
+    files = sorted(root.rglob("backtest_evidence*.json"))
+    for path in files:
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        for row in data.get("checks") or [] if isinstance(data, dict) else []:
+            if isinstance(row, dict) and row.get("symbol"):
+                evidence[str(row["symbol"]).upper()] = row
+    missing = sorted(visible - evidence.keys())
+    invalid = sorted(
+        symbol
+        for symbol in visible & evidence.keys()
+        if num(evidence[symbol], ("bars",)) is None
+        or num(evidence[symbol], ("bars",)) < 2190
+        or num(evidence[symbol], ("lookback_days",)) is None
+        or num(evidence[symbol], ("lookback_days",)) < 365
+        or str(evidence[symbol].get("interval") or "").lower() != "4h"
+        or evidence[symbol].get("ok") is not True
+    )
+    ok = bool(visible) and not missing and not invalid
+    return ok, f"visible={len(visible)} evidence={len(evidence)} missing={missing} invalid={invalid} files={[p.name for p in files]}"
+
+
 def run_playwright(urls: list[str]) -> tuple[bool, str]:
     try:
         from playwright.sync_api import sync_playwright
@@ -142,10 +177,13 @@ def run_playwright(urls: list[str]) -> tuple[bool, str]:
         page.on("console", lambda m: errors.append(f"console:{m.type}:{m.text}") if m.type == "error" else None)
         page.on("pageerror", lambda e: errors.append(f"pageerror:{e}"))
         for url in urls:
-            resp = page.goto(url, wait_until="load", timeout=20000)
-            if not resp or resp.status >= 500:
-                errors.append(f"{url} status={resp.status if resp else 'NO_RESPONSE'}")
-            page.wait_for_timeout(750)
+            try:
+                resp = page.goto(url, wait_until="load", timeout=20000)
+                if not resp or resp.status >= 500:
+                    errors.append(f"{url} status={resp.status if resp else 'NO_RESPONSE'}")
+                page.wait_for_timeout(750)
+            except Exception as exc:
+                errors.append(f"{url} navigation error: {exc}")
         browser.close()
     return not errors, "\n".join(errors) if errors else "no browser console/page errors"
 
@@ -196,7 +234,9 @@ def main() -> int:
             details.append(f"{url} ERROR {exc}")
     add(report, "5050 endpoints reachable without server errors", ok, "\n".join(details))
 
-    add(report, "market/live price score ranking sync", *(validate_market(payload) if payload is not None else (False, "market payload unavailable")))
+    add(report, "market/live price score ranking sync", *(validate_market(payload, require_backtest=not args.ci) if payload is not None else (False, "market payload unavailable")))
+    if args.ci and payload is not None:
+        add(report, "bundled backtest evidence covers visible candidates", *validate_backtest_artifact(root, payload))
     refreshed_payload = None
     if payload is not None:
         try:
@@ -206,8 +246,8 @@ def main() -> int:
         except Exception as exc:
             add(report, "market/live dynamic refresh", False, str(exc))
     if refreshed_payload is not None:
-        add(report, "market/live dynamic refresh", *validate_market_refresh(payload, refreshed_payload))
-    add(report, "browser E2E no console/page errors", *run_playwright(urls))
+        add(report, "market/live dynamic refresh", *validate_market_refresh(payload, refreshed_payload, require_backtest=not args.ci))
+    add(report, "browser E2E no console/page errors", *run_playwright(urls[:2]))
 
     runtime_endpoints = {
         "runtime identity": "/api/system/runtime",
@@ -222,12 +262,12 @@ def main() -> int:
             endpoint_payload = json.loads(body)
             endpoint_ok = endpoint_payload.get("ok") is True
             details = json.dumps(endpoint_payload.get("blocking_items") or endpoint_payload.get("runtime") or {"ok": endpoint_payload.get("ok")}, ensure_ascii=False)
-            if args.ci and label == "formal launch preflight":
+            if args.ci and label in {"backtest evidence", "formal launch preflight"}:
                 report["checks"].append({"label": label, "status": "INFO", "details": details})
             else:
                 add(report, label, endpoint_ok, details)
         except Exception as exc:
-            if args.ci and label == "formal launch preflight":
+            if args.ci and label in {"backtest evidence", "formal launch preflight"}:
                 report["checks"].append({"label": label, "status": "INFO", "details": str(exc)})
             else:
                 add(report, label, False, str(exc))

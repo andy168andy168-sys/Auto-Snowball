@@ -7,14 +7,15 @@ Auto Snowball Web release archive for USDC futures rolling strategy monitoring.
 - Release version: `v10.43`
 - Release manifest: `releases/v10.43/manifest.json`
 - Release archive filename: `auto_snowball_web_v10_43_candidate_history_gate.zip`
-- Source package SHA256 before safety-test injection: `6d078b880b4905d8570bd3f7096a41e382bbf03cbdfc124e3fb64d4b2094ebf2`
+- Source package SHA256 before safety-test injection: `f73067313cae9f5f0a7d65986a61c551ef4717218ee9a8aa22022412cf7796ad`
 - CI mode: safe / read-only only
 
 ## Main v10.43 changes
 
 - GitHub Actions release CI now targets the complete `v10.43` manifest and seven base64 parts.
 - Visible non-held candidates with less than 365 days / 2190 bars of 4H history are excluded before ranking; held symbols remain visible and launch-blocking.
-- The release includes `backtest_evidence_v10_43.json` for all 10 visible candidates using the runtime's machine-readable 365-day / 2190-bar / 4H evidence contract.
+- The release includes `backtest_evidence_v10_43.json` for the active and cold-start candidate sets using the runtime's machine-readable 365-day / 2190-bar / 4H evidence contract.
+- Cold-start fallback replaces unavailable `TONUSDC` with `TIAUSDC`, whose USDⓈ-M Futures 4H history meets the one-year minimum.
 - Overview and auto-select use the same final ranking source.
 - Reconciliation evidence exposes structured data-quality status and concrete per-symbol issues.
 - Runtime rendering avoids first-paint blocking while evidence APIs still enforce full hydration.
