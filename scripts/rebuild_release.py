@@ -154,16 +154,18 @@ def test_formula_tokens_are_in_single_release_codebase():
     assert_groups("formula consistency", [("six_line","six-line","六線","dense_zone","密集區"), ("distance","距離"), ("l1","L1"), ("stop_loss","stop-loss","止損"), ("profit_guard","profit-guard","保盈"), ("final_score","最終分數")])
 ''',
 "test_browser_e2e_playwright_5050_auto_select.py": '''
-import json
+import json, os
 from _production_gate_helpers import get, launch, stop, validate_market, wait
 def test_5050_auto_select_market_live_browser_e2e_has_no_errors():
-    p=launch(5050)
+    port=int(os.environ.get("AUTO_SNOWBALL_E2E_PORT", "5050"))
+    base=f"http://127.0.0.1:{port}"
+    p=launch(port)
     try:
-        wait("http://127.0.0.1:5050/")
-        urls=["http://127.0.0.1:5050/","http://127.0.0.1:5050/auto-select","http://127.0.0.1:5050/api/market/live"]
+        wait(base + "/")
+        urls=[base + "/", base + "/auto-select", base + "/api/market/live"]
         for u in urls:
             status,_,body=get(u); assert status<500 and "Traceback" not in body and "Internal Server Error" not in body
-        validate_market(json.loads(get("http://127.0.0.1:5050/api/market/live")[2]))
+        validate_market(json.loads(get(base + "/api/market/live")[2]))
         from playwright.sync_api import sync_playwright
         errs=[]
         with sync_playwright() as pw:
@@ -174,7 +176,7 @@ def test_5050_auto_select_market_live_browser_e2e_has_no_errors():
                 r=page.goto(u, wait_until="load", timeout=20000); assert r and r.status<500
                 page.wait_for_timeout(750)
             b.close()
-        assert not errs, "\n".join(errs)
+        assert not errs, "\\n".join(errs)
     finally:
         stop(p)
 ''',
@@ -186,6 +188,11 @@ def inject_release_tests(zip_path: Path) -> None:
         for name, content in RELEASE_ARCHIVE_TESTS.items():
             if name in existing:
                 raise SystemExit(f"release archive already contains injected gate file: {name}")
+            if name.endswith(".py"):
+                try:
+                    compile(content, name, "exec")
+                except SyntaxError as exc:
+                    raise SystemExit(f"injected release test is invalid: {name}: {exc}") from exc
             info = zipfile.ZipInfo(name, date_time=(2026, 6, 30, 0, 0, 0))
             info.compress_type = zipfile.ZIP_DEFLATED
             info.external_attr = 0o100644 << 16

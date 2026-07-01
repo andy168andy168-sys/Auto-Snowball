@@ -1,5 +1,6 @@
 from scripts import local_launch_gate
 from scripts import local_launch_gate_5050_binance as gate_5050
+from scripts import rebuild_release
 
 
 def market_payload():
@@ -120,3 +121,9 @@ def test_reconciliation_checks_status_objects_and_derivable_leverage(monkeypatch
 def test_browser_gate_avoids_networkidle_wait():
     source = local_launch_gate.run_playwright.__code__.co_consts
     assert "networkidle" not in source
+
+
+def test_injected_release_gate_files_compile():
+    for name, content in rebuild_release.RELEASE_ARCHIVE_TESTS.items():
+        if name.endswith(".py"):
+            compile(content, name, "exec")
