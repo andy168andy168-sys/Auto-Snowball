@@ -1,0 +1,54 @@
+{
+  "version": "10.48",
+  "release_name": "auto_snowball_web_v10_48_live_gate_machine_readable_e2e",
+  "live_readiness": "NOT_READY_FOR_LIVE_CAPITAL",
+  "explicit_live_standard_statement_allowed": false,
+  "do_not_send_real_orders": true,
+  "dense_zone": {
+    "center": "(six_line_high + six_line_low) / 2",
+    "low": "center * 0.99",
+    "high": "center * 1.01",
+    "half_width_pct": 1.0,
+    "total_width_pct": 2.0
+  },
+  "a_to_b_sync_ok": true,
+  "runtime_5050": {
+    "version": "10.48",
+    "host": "127.0.0.1",
+    "port": 5050,
+    "port_ok": true,
+    "actual_cwd": "/mnt/data/auto_snowball_web_v10_48_live_gate_machine_readable_e2e",
+    "expected_primary_workdir": "/Users/andyna/Documents/自動滾倉系統設計",
+    "mac_workdir_verified": false
+  },
+  "tests": {
+    "targeted": "35 passed",
+    "full_pytest": "196 passed, 12 skipped",
+    "browser_e2e": "6 skipped in sandbox; not a full browser pass"
+  },
+  "ranking_sorted_by_final_score_desc": true,
+  "active_symbols": ["BTCUSDC", "ETHUSDC", "SOLUSDC", "BNBUSDC"],
+  "backtest_evidence": {
+    "ok": false,
+    "blocking_count": 10,
+    "machine_readable_fail_closed": true,
+    "missing_proof_symbols": ["BTCUSDC", "ETHUSDC", "SOLUSDC", "BNBUSDC", "XRPUSDC", "ADAUSDC", "AVAXUSDC", "LINKUSDC", "DOGEUSDC", "TIAUSDC"]
+  },
+  "launch_preflight_ok": false,
+  "reconciliation": {
+    "dataQuality_ok": false,
+    "issues": ["account_ok=false", "balance_ok=false", "orders_ok=false"]
+  },
+  "websocket_runtime": {
+    "fresh_mark_price_count": 0,
+    "user_stream_status": "not ready"
+  },
+  "blocking_items": [
+    "Mac local workdir was not verified from sandbox",
+    "Missing 365-day approximately 2190 4H backtest proof for all visible candidates",
+    "Formal launch preflight is not satisfied",
+    "Binance reconciliation dataQuality is not clean",
+    "Runtime WebSocket mark price freshness is false",
+    "Browser Playwright E2E skipped in sandbox; not a full browser pass"
+  ]
+}
