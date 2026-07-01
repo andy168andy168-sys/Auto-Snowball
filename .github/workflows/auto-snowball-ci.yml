@@ -7,16 +7,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      AUTO_SNOWBALL_RELEASE_VERSION: "v10.42"
+      AUTO_SNOWBALL_RELEASE_VERSION: "v10.43"
       AUTO_SNOWBALL_SAFE_MODE: "1"
       AUTO_SNOWBALL_NO_REAL_ORDERS: "1"
       AUTO_SNOWBALL_READ_ONLY: "1"
       BINANCE_READ_ONLY: "1"
       FLASK_ENV: "testing"
       PORT: "5050"
-      RELEASE_DIR: "releases/v10.42"
-      RELEASE_ZIP: "releases/v10.42/auto_snowball_web_v10_42_release_flat.zip"
-      RELEASE_EXTRACT_DIR: "auto_snowball_web_v10_42"
+      RELEASE_DIR: "releases/v10.43"
+      RELEASE_ZIP: "releases/v10.43/auto_snowball_web_v10_43_candidate_history_gate.zip"
+      RELEASE_EXTRACT_DIR: "auto_snowball_web_v10_43"
     steps:
       - uses: actions/checkout@v4
 
@@ -31,25 +31,31 @@ jobs:
           pip install -r requirements.txt
           python -m playwright install --with-deps chromium
 
-      - name: Rebuild v10.42 archive with executable safety tests
+      - name: Rebuild v10.43 archive with executable safety tests
         run: |
           mkdir -p evidence
+          mkdir -p "$RELEASE_DIR"
           python scripts/rebuild_release.py | tee evidence/rebuild_release.log
+          ls -la "$RELEASE_DIR"
 
       - name: Record rebuilt archive hash
         run: |
           python - <<'PY'
           import hashlib, json, os, pathlib
           p = pathlib.Path(os.environ['RELEASE_ZIP'])
+          print(f'Looking for archive at: {p.resolve()}')
+          print(f'File exists: {p.exists()}')
+          if p.parent.exists():
+              print(f'Directory contents: {[item.name for item in p.parent.iterdir()]}')
           if not p.exists() or p.stat().st_size <= 0:
-              raise SystemExit('rebuilt v10.42 release archive missing')
+              raise SystemExit('rebuilt v10.43 release archive missing')
           actual = hashlib.sha256(p.read_bytes()).hexdigest()
           payload = {'release_version': os.environ.get('AUTO_SNOWBALL_RELEASE_VERSION'), 'rebuilt_archive_sha256': actual, 'bytes': p.stat().st_size}
           pathlib.Path('evidence/rebuilt_archive_sha256.json').write_text(json.dumps(payload, indent=2), encoding='utf-8')
           print(payload)
           PY
 
-      - name: Extract v10.42 release archive
+      - name: Extract v10.43 release archive
         run: |
           rm -rf "$RELEASE_EXTRACT_DIR"
           unzip -q "$RELEASE_ZIP" -d "$RELEASE_EXTRACT_DIR"
@@ -65,12 +71,12 @@ jobs:
             --extract-dir "$RELEASE_EXTRACT_DIR" | tee evidence/static_production_gate_audit.log
 
       - name: Install release dependencies
-        working-directory: auto_snowball_web_v10_42
+        working-directory: auto_snowball_web_v10_43
         run: |
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
       - name: Full non-browser pytest suite
-        working-directory: auto_snowball_web_v10_42
+        working-directory: auto_snowball_web_v10_43
         run: |
           python -m pytest -q -ra \
             --ignore=test_browser_e2e_playwright_5050_auto_select.py \

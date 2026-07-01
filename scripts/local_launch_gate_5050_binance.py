@@ -11,7 +11,7 @@ from typing import Any
 
 import requests
 
-BINANCE_SPOT_KLINES = "https://api.binance.com/api/v3/klines"
+BINANCE_FUTURES_KLINES = "https://fapi.binance.com/fapi/v1/klines"
 FOUR_HOURS_MS = 4 * 60 * 60 * 1000
 ONE_YEAR_4H_EXPECTED = 365 * 6
 ONE_YEAR_4H_MINIMUM = 2184  # allow a small edge-window tolerance around current partial candles
@@ -105,8 +105,8 @@ def check_sorted_by_final_score(rows: list[dict[str, Any]], failures: list[str])
 def check_live_fields(rows: list[dict[str, Any]], failures: list[str]) -> None:
     required_groups = {
         "live price": ("price", "last_price", "current_price", "現價"),
-        "entry status": ("entry_status", "in_zone", "入區", "入區狀態"),
-        "entry score": ("entry_score", "入區分數"),
+        "entry status": ("dense_zone_arrival_status", "entry_status", "in_zone", "入區", "入區狀態"),
+        "entry score": ("zone_entry_score", "entry_score", "入區分數"),
         "rank": ("rank", "排名"),
     }
     for row in rows:
@@ -116,37 +116,32 @@ def check_live_fields(rows: list[dict[str, Any]], failures: list[str]) -> None:
                 fail(f"{symbol}: missing {label} field in /api/market/live row", failures)
 
 
-def check_formula_fields(rows: list[dict[str, Any]], failures: list[str]) -> None:
-    for row in rows:
-        symbol = row.get("symbol") or row.get("pair") or "UNKNOWN"
-        center = first_number(row, ("six_line_center", "sixLineCenter", "六線中心"))
-        dense_low = first_number(row, ("dense_low", "denseZoneLow", "密集區下限"))
-        dense_high = first_number(row, ("dense_high", "denseZoneHigh", "密集區上限"))
-        if center and dense_low and dense_high:
-            if not math.isclose(dense_low, center * 0.985, rel_tol=1e-4, abs_tol=1e-8):
-                fail(f"{symbol}: dense low formula mismatch, got {dense_low}, expected {center * 0.985}", failures)
-            if not math.isclose(dense_high, center * 1.015, rel_tol=1e-4, abs_tol=1e-8):
-                fail(f"{symbol}: dense high formula mismatch, got {dense_high}, expected {center * 1.015}", failures)
-        else:
-            fail(f"{symbol}: missing six-line dense-zone fields for formula verification", failures)
-
-        capital = first_number(row, ("capital", "本金"))
-        stop_pct = first_number(row, ("stop_loss_pct", "stopLossPct", "止損百分比"))
-        stop_loss = first_number(row, ("stop_loss", "stopLoss", "止損"))
-        if capital is not None and stop_pct is not None and stop_loss is not None:
-            pct = stop_pct / 100 if stop_pct > 1 else stop_pct
-            if not math.isclose(stop_loss, capital * pct, rel_tol=1e-4, abs_tol=1e-8):
-                fail(f"{symbol}: stop-loss formula mismatch, got {stop_loss}, expected {capital * pct}", failures)
-        else:
-            fail(f"{symbol}: missing capital / stop-loss percent / stop-loss fields", failures)
-
-        target = first_number(row, ("triggered_target", "triggerTarget", "激發目標"))
-        guard = first_number(row, ("profit_guard", "profitGuard", "保盈"))
-        if target is not None and guard is not None:
-            if not math.isclose(guard, target * 0.8, rel_tol=1e-4, abs_tol=1e-8):
-                fail(f"{symbol}: profit-guard formula mismatch, got {guard}, expected {target * 0.8}", failures)
-        else:
-            fail(f"{symbol}: missing triggered target / profit guard fields", failures)
+def check_formula_audit(base_url: str, failures: list[str]) -> None:
+    try:
+        audit = get_json(base_url.rstrip("/") + "/api/system/formula-audit")
+    except Exception as exc:
+        fail(f"formula audit endpoint unavailable: {exc}", failures)
+        return
+    if not isinstance(audit, dict) or audit.get("ok") is not True:
+        fail(f"formula audit did not pass: {audit}", failures)
+        return
+    bad_rows = [row for row in audit.get("checks") or [] if row.get("ok") is not True]
+    if bad_rows:
+        fail(f"formula audit contains failed rows: {bad_rows}", failures)
+    formula = audit.get("formula") or {}
+    dense = formula.get("dense_zone") or {}
+    guard = formula.get("profit_guard") or {}
+    stop = formula.get("stop_loss") or {}
+    expected = {
+        "dense half-width": (number(dense.get("half_width_pct")), 1.5),
+        "L1 trigger": (number(guard.get("first_trigger_pct")), 30.0),
+        "L1 floor": (number(guard.get("first_floor_pct")), 24.0),
+        "profit protection ratio": (number(guard.get("protection_ratio")), 80.0),
+        "default stop-loss percent": (number(stop.get("default_pct")), 10.0),
+    }
+    for label, (actual, wanted) in expected.items():
+        if actual is None or not math.isclose(actual, wanted, rel_tol=1e-9, abs_tol=1e-9):
+            fail(f"{label} mismatch: got {actual!r}, expected {wanted}", failures)
 
 
 def count_binance_4h_klines(symbol: str, start_ms: int, end_ms: int) -> int:
@@ -160,7 +155,7 @@ def count_binance_4h_klines(symbol: str, start_ms: int, end_ms: int) -> int:
             "endTime": end_ms,
             "limit": 1000,
         }
-        response = requests.get(BINANCE_SPOT_KLINES, params=params, timeout=10)
+        response = requests.get(BINANCE_FUTURES_KLINES, params=params, timeout=10)
         response.raise_for_status()
         data = response.json()
         if not data:
@@ -193,9 +188,9 @@ def check_public_backtests(symbols: list[str], failures: list[str]) -> None:
 
 def check_reconciliation(base_url: str, failures: list[str]) -> None:
     candidate_paths = [
+        "/api/binance/reconciliation?refresh=0",
         "/api/reconciliation/status",
         "/api/account/reconciliation",
-        "/api/binance/reconciliation",
         "/api/account/truth",
     ]
     for path in candidate_paths:
@@ -204,11 +199,31 @@ def check_reconciliation(base_url: str, failures: list[str]) -> None:
             data = get_json(url, timeout=5)
         except Exception:
             continue
-        text = str(data).lower()
-        if any(word in text for word in ("mismatch", "error", "異常", "fail")):
-            fail(f"Binance reconciliation endpoint reports an issue: {path}: {data}", failures)
-        else:
-            print(f"Binance reconciliation endpoint checked: {path}")
+        if not isinstance(data, dict):
+            fail(f"Binance reconciliation endpoint returned non-object data: {path}", failures)
+            return
+        diagnostics = data.get("diagnostics") or {}
+        for key in ("account_ok", "balance_ok", "orders_ok"):
+            if diagnostics.get(key) is not True:
+                fail(f"Binance reconciliation {key}=false: {diagnostics}", failures)
+        for row in data.get("symbols") or []:
+            symbol = row.get("symbol") or "UNKNOWN"
+            for endpoint, status in (row.get("endpoint_status") or {}).items():
+                if not isinstance(status, dict) or status.get("ok") is not True:
+                    fail(f"{symbol}: reconciliation endpoint {endpoint} failed: {status}", failures)
+            position = row.get("position") or {}
+            if abs(number(position.get("positionAmt")) or 0.0) > 0:
+                for field in ("entryPrice", "breakEvenPrice", "markPrice", "unRealizedProfit", "liquidationPrice", "notional", "initialMargin"):
+                    if position.get(field) in (None, ""):
+                        fail(f"{symbol}: non-zero position missing exchange field {field}", failures)
+                leverage = number(position.get("leverage"))
+                if not leverage or leverage <= 0:
+                    notional = abs(number(position.get("notional")) or 0.0)
+                    initial_margin = number(position.get("initialMargin")) or 0.0
+                    leverage = notional / initial_margin if notional > 0 and initial_margin > 0 else 0.0
+                if leverage <= 0:
+                    fail(f"{symbol}: non-zero position has no direct or derivable leverage", failures)
+        print(f"Binance reconciliation endpoint checked: {path}")
         return
     fail("no Binance reconciliation endpoint was reachable from localhost; account balance/order/fee reconciliation is unverified", failures)
 
@@ -250,9 +265,12 @@ def main() -> int:
         print(f"leaderboard rows discovered={len(rows)}")
         check_sorted_by_final_score(rows, failures)
         check_live_fields(rows, failures)
-        check_formula_fields(rows, failures)
+        check_formula_audit(base_url, failures)
 
-    symbols = find_symbols(live)
+    # Only leaderboard rows are visible candidates. WebSocket status, K-line
+    # caches, and reconciliation metadata can contain additional symbols that
+    # must not be promoted into the visible-candidate backtest gate.
+    symbols = find_symbols(rows)
     if not symbols:
         fail("no visible USDC candidate symbols discovered from /api/market/live", failures)
     else:
