@@ -132,16 +132,94 @@ def check_formula_audit(base_url: str, failures: list[str]) -> None:
     dense = formula.get("dense_zone") or {}
     guard = formula.get("profit_guard") or {}
     stop = formula.get("stop_loss") or {}
+    dense_half_width = number(dense.get("half_width_pct"))
+    dense_total_width = number(dense.get("total_width_pct"))
+    if dense_half_width is None or dense_half_width <= 0:
+        fail(f"dense half-width must be positive, got {dense_half_width!r}", failures)
+    if dense_total_width is None or dense_half_width is None:
+        fail(
+            "dense total/half-width formula fields are missing: "
+            f"total={dense_total_width!r}, half={dense_half_width!r}",
+            failures,
+        )
+    elif not math.isclose(dense_total_width, dense_half_width * 2, rel_tol=1e-9, abs_tol=1e-9):
+        fail(
+            f"dense total-width formula mismatch: got {dense_total_width!r}, "
+            f"expected 2 * {dense_half_width} = {dense_half_width * 2}",
+            failures,
+        )
+
+    a_to_b_sync = audit.get("a_to_b_sync") or {}
+    if not isinstance(a_to_b_sync, dict) or a_to_b_sync.get("ok") is not True:
+        fail(f"dense-zone A-to-B synchronization did not pass: {a_to_b_sync}", failures)
+    else:
+        bad_sync_rows = [row for row in a_to_b_sync.get("checks") or [] if row.get("ok") is not True]
+        if bad_sync_rows:
+            fail(f"dense-zone A-to-B synchronization contains failed rows: {bad_sync_rows}", failures)
+
     expected = {
-        "dense half-width": (number(dense.get("half_width_pct")), 1.5),
-        "L1 trigger": (number(guard.get("first_trigger_pct")), 30.0),
-        "L1 floor": (number(guard.get("first_floor_pct")), 24.0),
         "profit protection ratio": (number(guard.get("protection_ratio")), 80.0),
         "default stop-loss percent": (number(stop.get("default_pct")), 10.0),
     }
     for label, (actual, wanted) in expected.items():
         if actual is None or not math.isclose(actual, wanted, rel_tol=1e-9, abs_tol=1e-9):
             fail(f"{label} mismatch: got {actual!r}, expected {wanted}", failures)
+
+    trigger_pct = number(guard.get("first_trigger_pct"))
+    floor_pct = number(guard.get("first_floor_pct"))
+    protection_ratio = number(guard.get("protection_ratio"))
+    if trigger_pct is None or trigger_pct <= 0:
+        fail(f"L1 trigger must be positive, got {trigger_pct!r}", failures)
+    if floor_pct is None or protection_ratio is None:
+        fail(
+            f"L1 floor/protection ratio missing: floor={floor_pct!r}, ratio={protection_ratio!r}",
+            failures,
+        )
+    elif trigger_pct is not None:
+        expected_floor_pct = trigger_pct * protection_ratio / 100.0
+        if not math.isclose(floor_pct, expected_floor_pct, rel_tol=1e-9, abs_tol=1e-9):
+            fail(
+                f"L1 floor formula mismatch: got {floor_pct!r}, expected "
+                f"{trigger_pct} * {protection_ratio}% = {expected_floor_pct}",
+                failures,
+            )
+
+    trigger_usdc = number(guard.get("first_trigger_usdc"))
+    floor_usdc = number(guard.get("first_floor_usdc"))
+    if trigger_usdc is not None and floor_usdc is not None and protection_ratio is not None:
+        expected_floor_usdc = trigger_usdc * protection_ratio / 100.0
+        if not math.isclose(floor_usdc, expected_floor_usdc, rel_tol=1e-9, abs_tol=1e-9):
+            fail(
+                f"L1 USDC floor formula mismatch: got {floor_usdc!r}, expected "
+                f"{trigger_usdc} * {protection_ratio}% = {expected_floor_usdc}",
+                failures,
+            )
+
+
+def check_launch_preflight(base_url: str, failures: list[str]) -> None:
+    try:
+        preflight = get_json(
+            base_url.rstrip("/") + "/api/system/launch-preflight",
+            timeout=30,
+        )
+    except Exception as exc:
+        fail(f"formal launch preflight endpoint unavailable: {exc}", failures)
+        return
+    if not isinstance(preflight, dict):
+        fail(f"formal launch preflight returned non-object data: {preflight!r}", failures)
+        return
+    if preflight.get("ok") is True:
+        return
+    blockers = [
+        str(item.get("item") or item)
+        for item in preflight.get("blocking_items") or []
+        if not isinstance(item, dict) or item.get("ok") is not True
+    ]
+    fail(
+        "formal launch preflight blocked"
+        + (": " + ", ".join(blockers) if blockers else f": {preflight}"),
+        failures,
+    )
 
 
 def count_binance_4h_klines(symbol: str, start_ms: int, end_ms: int) -> int:
@@ -279,6 +357,7 @@ def main() -> int:
             check_public_backtests(symbols, failures)
 
     check_reconciliation(base_url, failures)
+    check_launch_preflight(base_url, failures)
 
     if failures:
         print("LOCAL_LAUNCH_GATE=FAIL")

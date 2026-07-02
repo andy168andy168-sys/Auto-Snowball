@@ -25,6 +25,12 @@ def add(report: dict[str, Any], label: str, ok: bool, details: str) -> None:
         report["failures"].append(item)
 
 
+def runtime_endpoint_timeout(path: str) -> float:
+    # launch-preflight recomputes several evidence payloads and can take longer
+    # than the generic request timeout on the live 5050 process.
+    return 30.0 if path == "/api/system/launch-preflight" else 12.0
+
+
 def source_text(root: Path) -> str:
     chunks: list[str] = []
     for p in root.rglob("*"):
@@ -178,7 +184,7 @@ def run_playwright(urls: list[str]) -> tuple[bool, str]:
         page.on("pageerror", lambda e: errors.append(f"pageerror:{e}"))
         for url in urls:
             try:
-                resp = page.goto(url, wait_until="load", timeout=20000)
+                resp = page.goto(url, wait_until="load", timeout=30000)
                 if not resp or resp.status >= 500:
                     errors.append(f"{url} status={resp.status if resp else 'NO_RESPONSE'}")
                 page.wait_for_timeout(750)
@@ -258,7 +264,10 @@ def main() -> int:
     }
     for label, path in runtime_endpoints.items():
         try:
-            _, _, body = get(args.url.rstrip("/") + path)
+            _, _, body = get(
+                args.url.rstrip("/") + path,
+                timeout=runtime_endpoint_timeout(path),
+            )
             endpoint_payload = json.loads(body)
             endpoint_ok = endpoint_payload.get("ok") is True
             details = json.dumps(endpoint_payload.get("blocking_items") or endpoint_payload.get("runtime") or {"ok": endpoint_payload.get("ok")}, ensure_ascii=False)
