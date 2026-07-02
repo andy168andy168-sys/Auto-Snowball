@@ -1,0 +1,32 @@
+{
+  "release": "v10.59",
+  "ok_for_live_capital": false,
+  "runtime": {
+    "version": "10.59",
+    "cwd": "/mnt/data/asnow_v10_59_audit/auto_snowball_web_v10_58_ci_smoke_live_gate_hardening",
+    "expected_primary_workdir": "/Users/andyna/Documents/自動滾倉系統設計",
+    "port": 5050,
+    "host_ok": true,
+    "port_ok": true
+  },
+  "passed": {
+    "http_5050": true,
+    "ranking_sorted_desc": true,
+    "active_top_rows_count": 4,
+    "formula_audit_ok": true,
+    "logic_version": "D+E/v10.59",
+    "a_to_b_sync_ok": true,
+    "targeted_security_read_only": "23 passed",
+    "non_browser_pytest": "237 passed"
+  },
+  "blocked": [
+    "runtime cwd is not the requested Mac workdir",
+    "browser E2E skipped in sandbox, not a full pass",
+    "365-day / about 2190-bar 4H backtest evidence missing for visible candidates",
+    "Binance signed account/balance/orders reconciliation unavailable because production API keys are not set in this sandbox",
+    "fresh mark-price websocket evidence missing",
+    "formal launch preflight is not satisfied",
+    "safe/read-only/no-real-orders lock active",
+    "manual small-canary approval not confirmed"
+  ]
+}
