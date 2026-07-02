@@ -1,0 +1,37 @@
+{
+  "release": "v10.58",
+  "ok_for_live_capital": false,
+  "runtime": {
+    "version": "10.58",
+    "cwd": "/mnt/data/asnow_v10_58_audit",
+    "expected_primary_workdir": "/Users/andyna/Documents/自動滾倉系統設計",
+    "port": 5050,
+    "host_ok": true,
+    "port_ok": true
+  },
+  "passed": {
+    "http_5050": true,
+    "ranking_sorted_desc": true,
+    "active_top_rows_synced": true,
+    "formula_audit_ok": true,
+    "a_to_b_sync_ok": true,
+    "targeted_security_ci": "30 passed",
+    "non_browser_pytest": "233 passed",
+    "security_smoke": {
+      "evil_host": 403,
+      "no_origin_post": 403,
+      "same_site_post": 403,
+      "same_origin_post": 200,
+      "local_header_post": 200
+    }
+  },
+  "blocked": [
+    "runtime cwd is not the requested Mac workdir",
+    "365-day / about 2190-bar 4H backtest evidence missing for visible candidates",
+    "Binance reconciliation data quality is not clean",
+    "fresh mark-price websocket evidence missing",
+    "formal launch preflight is not satisfied",
+    "browser E2E skipped in sandbox, not a full pass",
+    "small-canary approval not confirmed"
+  ]
+}
