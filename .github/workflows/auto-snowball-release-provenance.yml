@@ -1,0 +1,37 @@
+name: Auto Snowball Release Provenance
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'releases/**'
+      - 'auto_snowball_web_v*.zip'
+      - '.github/workflows/auto-snowball-release-provenance.yml'
+
+jobs:
+  attest-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Locate release archive
+        id: locate
+        shell: bash
+        run: |
+          set -euo pipefail
+          zip_path="$(find . -maxdepth 4 -type f -name 'auto_snowball_web_v*.zip' | sort -V | tail -n 1 || true)"
+          if [ -z "$zip_path" ]; then
+            echo "No release zip found for provenance attestation" >&2
+            exit 1
+          fi
+          echo "zip_path=$zip_path" >> "$GITHUB_OUTPUT"
+          sha256sum "$zip_path" | tee release-archive.sha256
+
+      - name: Attest Build Provenance
+        uses: actions/attest-build-provenance@v4.1.1
+        with:
+          subject-path: ${{ steps.locate.outputs.zip_path }}
