@@ -20,6 +20,14 @@ Auto Snowball Web release archive for USDC futures rolling strategy monitoring.
 - The archive excludes API keys, runtime state, caches, logs and Python caches.
 - This GitHub sync does not approve or enable real trading.
 
+## Launch-gate tooling patch v10.49
+
+- This is a tooling-only compatibility patch for auditing the V10.48 runtime; the current application release remains V10.50.
+- The launch gate validates the runtime dense-zone relationship (`total width = 2 × half width`) and explicit A→B synchronization instead of hard-coding retired formula values.
+- Formal preflight requests use a longer timeout and report the actual blocking items.
+- Browser navigation uses a 30-second `load` wait plus a short observation window.
+- The verified V10.48 runtime remained blocked by `正式 API 金鑰已設定` and `小額灰度需手動確認`; this patch does not approve real trading.
+
 ## Current GitHub Actions archive gate
 
 - The existing rebuild workflow still targets the historical `v10.43` base64-parts archive.

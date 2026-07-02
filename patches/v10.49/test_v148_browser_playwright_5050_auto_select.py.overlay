@@ -1,0 +1,103 @@
+import os
+import re
+import socket
+from urllib.parse import urlparse
+
+import pytest
+from _production_gate_helpers import get, launch, stop, wait
+
+
+BASE_URL = os.getenv("AUTO_SNOWBALL_E2E_BASE_URL", "http://127.0.0.1:5050").rstrip("/")
+HTTP_PROBE_TIMEOUT_SECONDS = 12
+BROWSER_TIMEOUT_MS = 30_000
+
+
+def chromium_executable_path():
+    candidates = [
+        os.getenv("PLAYWRIGHT_CHROMIUM_PATH"),
+        "/usr/bin/chromium",
+        "/usr/bin/chromium-browser",
+        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        "/Applications/Chromium.app/Contents/MacOS/Chromium",
+    ]
+    return next((path for path in candidates if path and os.path.exists(path)), None)
+
+
+def local_port_is_listening(host, port):
+    try:
+        with socket.create_connection((host, port), timeout=1):
+            return True
+    except OSError:
+        return False
+
+
+def test_browser_playwright_5050_auto_select_and_home_rankings_match():
+    try:
+        from playwright.sync_api import sync_playwright
+    except Exception as exc:  # pragma: no cover
+        pytest.skip(f"Playwright 未安裝：{exc}")
+    executable = chromium_executable_path()
+    if not executable:
+        pytest.skip("找不到可用的 Chromium / Chrome 執行檔")
+
+    parsed = urlparse(BASE_URL)
+    proc = None
+    try:
+        try:
+            get(BASE_URL + "/", timeout=HTTP_PROBE_TIMEOUT_SECONDS)
+        except Exception:
+            if parsed.hostname in ["127.0.0.1", "localhost"]:
+                port = int(parsed.port or 5050)
+                if not local_port_is_listening(parsed.hostname, port):
+                    proc = launch(port)
+                wait(BASE_URL + "/")
+            else:
+                pytest.skip(f"外部 E2E base URL 不可連線：{BASE_URL}")
+
+        errors = []
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch(headless=True, executable_path=executable)
+            page = browser.new_page(viewport={"width": 1440, "height": 1100})
+            page.on("console", lambda message: errors.append(message.text) if message.type == "error" else None)
+            page.on("pageerror", lambda error: errors.append(str(error)))
+
+            runtime_response = page.request.get(f"{BASE_URL}/api/system/runtime", timeout=BROWSER_TIMEOUT_MS)
+            assert runtime_response.status < 400
+            assert runtime_response.json()["version"] == "10.48"
+
+            try:
+                response = page.goto(f"{BASE_URL}/auto-select", wait_until="load", timeout=BROWSER_TIMEOUT_MS)
+            except Exception as exc:
+                if "ERR_BLOCKED_BY_ADMINISTRATOR" in str(exc):
+                    browser.close()
+                    pytest.skip(f"Chromium policy blocked localhost: {exc}")
+                raise
+            assert response and response.status < 400
+            page.wait_for_timeout(750)
+            auto_rows = page.locator("#auto-select-tbody tr")
+            assert auto_rows.count() == 10
+            auto_symbols = auto_rows.locator("td:nth-child(2)").all_text_contents()
+            auto_scores = [
+                float(re.match(r"-?\d+(?:\.\d+)?", text).group(0))
+                for text in auto_rows.locator("td:nth-child(7)").all_text_contents()
+            ]
+            assert auto_scores == sorted(auto_scores, reverse=True)
+
+            response = page.goto(f"{BASE_URL}/", wait_until="load", timeout=BROWSER_TIMEOUT_MS)
+            assert response and response.status < 400
+            page.wait_for_timeout(750)
+            home_rows = page.locator("main table tbody tr")
+            assert home_rows.count() == 10
+            home_symbols = home_rows.locator("td:nth-child(2)").all_text_contents()
+            home_scores = [
+                float(re.match(r"-?\d+(?:\.\d+)?", text).group(0))
+                for text in home_rows.locator("td:nth-child(4)").all_text_contents()
+            ]
+            assert home_scores == sorted(home_scores, reverse=True)
+            assert set(home_symbols) == set(auto_symbols)
+            browser.close()
+
+        assert errors == []
+    finally:
+        if proc is not None:
+            stop(proc)

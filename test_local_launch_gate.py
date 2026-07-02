@@ -37,6 +37,11 @@ def test_market_validator_accepts_runtime_field_names_and_score_fallback():
     assert ok, detail
 
 
+def test_formal_preflight_uses_longer_runtime_timeout():
+    assert local_launch_gate.runtime_endpoint_timeout("/api/system/runtime") == 12.0
+    assert local_launch_gate.runtime_endpoint_timeout("/api/system/launch-preflight") == 30.0
+
+
 def test_market_validator_rejects_rank_drift():
     payload = market_payload()
     payload["coins"][1]["rank"] = 3
@@ -100,14 +105,23 @@ def test_formula_audit_validates_runtime_formula_payload(monkeypatch):
     monkeypatch.setattr(
         gate_5050,
         "get_json",
-        lambda _url: {
+        lambda _url, timeout=8: {
             "ok": True,
             "checks": [{"ok": True}],
+            "a_to_b_sync": {
+                "ok": True,
+                "checks": [
+                    {"field": "dense_zone_half_pct", "a_value": 1.0, "b_value": 1.0, "ok": True},
+                    {"field": "dense_zone_max_width_pct", "a_value": 2.0, "b_value": 2.0, "ok": True},
+                ],
+            },
             "formula": {
-                "dense_zone": {"half_width_pct": 1.5},
+                "dense_zone": {"half_width_pct": 1.0, "total_width_pct": 2.0},
                 "profit_guard": {
-                    "first_trigger_pct": 30,
-                    "first_floor_pct": 24,
+                    "first_trigger_pct": 20,
+                    "first_floor_pct": 16,
+                    "first_trigger_usdc": 20,
+                    "first_floor_usdc": 16,
                     "protection_ratio": 80,
                 },
                 "stop_loss": {"default_pct": 10},
@@ -117,6 +131,71 @@ def test_formula_audit_validates_runtime_formula_payload(monkeypatch):
     failures = []
     gate_5050.check_formula_audit("http://127.0.0.1:5050", failures)
     assert failures == []
+
+
+def test_formula_audit_rejects_floor_not_derived_from_trigger(monkeypatch):
+    monkeypatch.setattr(
+        gate_5050,
+        "get_json",
+        lambda _url, timeout=8: {
+            "ok": True,
+            "checks": [{"ok": True}],
+            "a_to_b_sync": {"ok": True, "checks": [{"ok": True}]},
+            "formula": {
+                "dense_zone": {"half_width_pct": 1.0, "total_width_pct": 2.0},
+                "profit_guard": {
+                    "first_trigger_pct": 20,
+                    "first_floor_pct": 24,
+                    "protection_ratio": 80,
+                },
+                "stop_loss": {"default_pct": 10},
+            },
+        },
+    )
+    failures = []
+    gate_5050.check_formula_audit("http://127.0.0.1:5050", failures)
+    assert any("L1 floor formula mismatch" in item for item in failures)
+
+
+def test_formula_audit_rejects_dense_total_width_drift(monkeypatch):
+    monkeypatch.setattr(
+        gate_5050,
+        "get_json",
+        lambda _url, timeout=8: {
+            "ok": True,
+            "checks": [{"ok": True}],
+            "a_to_b_sync": {"ok": True, "checks": [{"ok": True}]},
+            "formula": {
+                "dense_zone": {"half_width_pct": 1.0, "total_width_pct": 3.0},
+                "profit_guard": {
+                    "first_trigger_pct": 20,
+                    "first_floor_pct": 16,
+                    "protection_ratio": 80,
+                },
+                "stop_loss": {"default_pct": 10},
+            },
+        },
+    )
+    failures = []
+    gate_5050.check_formula_audit("http://127.0.0.1:5050", failures)
+    assert any("dense total-width formula mismatch" in item for item in failures)
+
+
+def test_launch_preflight_surfaces_manual_blockers(monkeypatch):
+    monkeypatch.setattr(
+        gate_5050,
+        "get_json",
+        lambda _url, timeout=8: {
+            "ok": False,
+            "blocking_items": [
+                {"item": "正式 API 金鑰已設定", "ok": False},
+                {"item": "小額灰度需手動確認", "ok": False},
+            ],
+        },
+    )
+    failures = []
+    gate_5050.check_launch_preflight("http://127.0.0.1:5050", failures)
+    assert failures == ["formal launch preflight blocked: 正式 API 金鑰已設定, 小額灰度需手動確認"]
 
 
 def test_reconciliation_checks_status_objects_and_derivable_leverage(monkeypatch):
@@ -149,6 +228,7 @@ def test_reconciliation_checks_status_objects_and_derivable_leverage(monkeypatch
 def test_browser_gate_avoids_networkidle_wait():
     source = local_launch_gate.run_playwright.__code__.co_consts
     assert "networkidle" not in source
+    assert 30000 in source
 
 
 def test_ci_browser_gate_does_not_repeat_market_api_navigation():
