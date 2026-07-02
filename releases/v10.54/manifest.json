@@ -1,0 +1,29 @@
+{
+  "version": "10.54",
+  "name": "auto_snowball_web_v10_54_read_only_gate_hardening",
+  "filename": "auto_snowball_web_v10_54_read_only_gate_hardening.zip",
+  "zip_size_bytes": 290075,
+  "sha256": "f3f0cc8fc5ccdcc622b1d617aa2ba65de1c0740ba4eed00c88419b37ab8b9c69",
+  "checksum_file": "SHA256SUMS",
+  "parts": [
+    "part_00.b64",
+    "part_01.b64",
+    "part_02.b64",
+    "part_03.b64",
+    "part_04.b64",
+    "part_05.b64",
+    "part_06.b64",
+    "part_07.b64"
+  ],
+  "tests": "225 passed",
+  "production_safety_websocket": "32 passed",
+  "browser_http_e2e": "12 passed",
+  "actual_5050_playwright": "2 passed",
+  "release_tooling": "19 passed; test placement PASS",
+  "status": "blocked",
+  "blocking_items": [
+    "安全／唯讀交易鎖已解除",
+    "正式 API 金鑰已設定",
+    "小額灰度需手動確認"
+  ]
+}

@@ -90,6 +90,26 @@ def test_market_refresh_accepts_new_timestamp_with_synchronized_rows():
     assert ok, detail
 
 
+def test_market_refresh_accepts_dynamic_field_change_without_timestamp_change():
+    before = market_payload()
+    before["updated_at"] = "2026-07-02 17:00:00"
+    after = market_payload()
+    after["updated_at"] = before["updated_at"]
+    after["coins"][0]["price"] = 101
+    ok, detail = local_launch_gate.validate_market_refresh(before, after)
+    assert ok, detail
+
+
+def test_market_refresh_rejects_unchanged_snapshot():
+    before = market_payload()
+    before["updated_at"] = "2026-07-02 17:00:00"
+    after = market_payload()
+    after["updated_at"] = before["updated_at"]
+    ok, detail = local_launch_gate.validate_market_refresh(before, after)
+    assert not ok
+    assert "did not advance" in detail
+
+
 def test_5050_gate_uses_usds_m_futures_klines():
     assert gate_5050.BINANCE_FUTURES_KLINES == "https://fapi.binance.com/fapi/v1/klines"
 

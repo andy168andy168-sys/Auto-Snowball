@@ -7,15 +7,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      AUTO_SNOWBALL_RELEASE_VERSION: "v10.51"
+      AUTO_SNOWBALL_RELEASE_VERSION: "v10.54"
       AUTO_SNOWBALL_SAFE_MODE: "1"
       AUTO_SNOWBALL_NO_REAL_ORDERS: "1"
       AUTO_SNOWBALL_READ_ONLY: "1"
       BINANCE_READ_ONLY: "1"
       FLASK_ENV: "testing"
       PORT: "5050"
-      RELEASE_DIR: "releases/v10.51"
-      RELEASE_ZIP: "releases/v10.51/auto_snowball_web_v10_51_book_stream_resubscribe_e2e.zip"
+      RELEASE_DIR: "releases/v10.54"
+      RELEASE_ZIP: "releases/v10.54/auto_snowball_web_v10_54_read_only_gate_hardening.zip"
       RELEASE_EXTRACT_DIR: "release_extract"
     steps:
       - uses: actions/checkout@v4
@@ -31,7 +31,7 @@ jobs:
           pip install -r requirements.txt
           python -m playwright install --with-deps chromium
 
-      - name: Rebuild v10.51 archive with executable safety tests
+      - name: Rebuild v10.54 archive with executable safety tests
         run: |
           set -o pipefail
           mkdir -p evidence
@@ -49,14 +49,14 @@ jobs:
           if p.parent.exists():
               print(f'Directory contents: {[item.name for item in p.parent.iterdir()]}')
           if not p.exists() or p.stat().st_size <= 0:
-              raise SystemExit('rebuilt v10.51 release archive missing')
+              raise SystemExit('rebuilt v10.54 release archive missing')
           actual = hashlib.sha256(p.read_bytes()).hexdigest()
           payload = {'release_version': os.environ.get('AUTO_SNOWBALL_RELEASE_VERSION'), 'rebuilt_archive_sha256': actual, 'bytes': p.stat().st_size}
           pathlib.Path('evidence/rebuilt_archive_sha256.json').write_text(json.dumps(payload, indent=2), encoding='utf-8')
           print(payload)
           PY
 
-      - name: Extract v10.51 release archive
+      - name: Extract v10.54 release archive
         run: |
           rm -rf "$RELEASE_EXTRACT_DIR"
           unzip -q "$RELEASE_ZIP" -d "$RELEASE_EXTRACT_DIR"
@@ -73,12 +73,12 @@ jobs:
             --extract-dir "$RELEASE_EXTRACT_DIR" | tee evidence/static_production_gate_audit.log
 
       - name: Install release dependencies
-        working-directory: release_extract/auto_snowball_web_v10_51_book_stream_resubscribe_e2e
+        working-directory: release_extract/auto_snowball_web_v10_54_read_only_gate_hardening
         run: |
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
       - name: Full non-browser pytest suite
-        working-directory: release_extract/auto_snowball_web_v10_51_book_stream_resubscribe_e2e
+        working-directory: release_extract/auto_snowball_web_v10_54_read_only_gate_hardening
         run: |
           set -o pipefail
           python -m pytest -q -ra \
@@ -89,7 +89,7 @@ jobs:
             --ignore=test_v103_playwright_strategy_calculator.py | tee ../../evidence/pytest_non_browser.log
 
       - name: 5050 Flask smoke and browser E2E
-        working-directory: release_extract/auto_snowball_web_v10_51_book_stream_resubscribe_e2e
+        working-directory: release_extract/auto_snowball_web_v10_54_read_only_gate_hardening
         run: |
           python -m pytest -q \
             test_browser_e2e_playwright_5050_auto_select.py \
