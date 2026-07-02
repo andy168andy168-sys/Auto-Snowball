@@ -1,0 +1,70 @@
+{
+  "verified_at_utc": "2026-07-02T08:59:00Z",
+  "base_url": "http://127.0.0.1:5050",
+  "release": "v10.51",
+  "ok_for_live_capital": false,
+  "http_checks": {
+    "/": {"ok": true, "status": 200, "content_type": "text/html; charset=utf-8", "length": 16214},
+    "/auto-select": {"ok": true, "status": 200, "content_type": "text/html; charset=utf-8", "length": 34893},
+    "/api/market/live": {"ok": true, "status": 200, "content_type": "application/json", "length": 63462},
+    "/api/realtime": {"ok": true, "status": 200, "content_type": "application/json", "length": 169380},
+    "/api/system/runtime": {"ok": true, "status": 200, "content_type": "application/json", "length": 502},
+    "/api/system/formula-audit": {"ok": true, "status": 200, "content_type": "application/json", "length": 3046},
+    "/api/system/backtest-evidence": {"ok": true, "status": 200, "content_type": "application/json", "length": 4707},
+    "/api/system/launch-preflight": {"ok": true, "status": 200, "content_type": "application/json", "length": 6522},
+    "/api/binance/truth": {"ok": true, "status": 200, "content_type": "application/json", "length": 3034},
+    "/api/binance/reconciliation?refresh=0": {"ok": true, "status": 200, "content_type": "application/json", "length": 29298},
+    "/api/ws/status": {"ok": true, "status": 200, "content_type": "application/json", "length": 1761},
+    "/api/system/process-monitor": {"ok": true, "status": 200, "content_type": "application/json", "length": 1047},
+    "/api/engine/plan": {"ok": true, "status": 200, "content_type": "application/json", "length": 80696}
+  },
+  "runtime": {
+    "version": "10.51",
+    "cwd": "/mnt/data/asnow_v10_51",
+    "expected_primary_workdir": "/Users/andyna/Documents/自動滾倉系統設計",
+    "port": 5050,
+    "port_ok": true
+  },
+  "ranking": {
+    "visible_count": 10,
+    "symbols": ["BTCUSDC", "ETHUSDC", "SOLUSDC", "BNBUSDC", "XRPUSDC", "ADAUSDC", "AVAXUSDC", "LINKUSDC", "DOGEUSDC", "TIAUSDC"],
+    "scores": [64.37, 62.5, 56.79, 52.96, 52.5, 52.27, 50.92, 26.55, 20.33, 13.93],
+    "sorted_desc": true
+  },
+  "live_sync": {
+    "active_count": 4,
+    "rows": [
+      {"symbol": "BTCUSDC", "price_market": 104200.0, "price_realtime": 104200.0, "rank_market": 1, "rank_realtime": 1, "entry_status_market": "已進入", "entry_status_realtime": "已進入", "score_market": 64.37, "score_realtime": 64.37, "ok": true},
+      {"symbol": "ETHUSDC", "price_market": 3520.8, "price_realtime": 3520.8, "rank_market": 2, "rank_realtime": 2, "entry_status_market": "已進入", "entry_status_realtime": "已進入", "score_market": 62.5, "score_realtime": 62.5, "ok": true},
+      {"symbol": "SOLUSDC", "price_market": 142.3, "price_realtime": 142.3, "rank_market": 3, "rank_realtime": 3, "entry_status_market": "已進入", "entry_status_realtime": "已進入", "score_market": 56.79, "score_realtime": 56.79, "ok": true},
+      {"symbol": "BNBUSDC", "price_market": 610.4, "price_realtime": 610.4, "rank_market": 4, "rank_realtime": 4, "entry_status_market": "已進入", "entry_status_realtime": "已進入", "score_market": 52.96, "score_realtime": 52.96, "ok": true}
+    ],
+    "ok": true
+  },
+  "formula_audit": {"ok": true, "logic_version": "D+E/v10.51", "checked_rows": 4, "a_to_b_sync_ok": true},
+  "backtest_evidence": {"ok": false, "visible_count": 10, "required_days": 365, "required_min_bars": 2190, "blocking_symbols": ["BTCUSDC", "ETHUSDC", "SOLUSDC", "BNBUSDC", "XRPUSDC", "ADAUSDC", "AVAXUSDC", "LINKUSDC", "DOGEUSDC", "TIAUSDC"], "blocking_count": 10},
+  "binance_reconciliation": {
+    "truth_account_ok": false,
+    "truth_balance_ok": false,
+    "truth_orders_ok": false,
+    "data_quality_ok": false,
+    "issues": ["account_ok=false", "balance_ok=false", "orders_ok=false", "BTCUSDC: endpoint premiumIndex failed", "BTCUSDC: endpoint commissionRate failed", "BTCUSDC: endpoint leverageBracket failed", "BTCUSDC: endpoint userTrades failed", "BTCUSDC: endpoint income failed", "BTCUSDC: endpoint orders failed", "ETHUSDC: endpoint premiumIndex failed", "ETHUSDC: endpoint commissionRate failed", "ETHUSDC: endpoint leverageBracket failed", "ETHUSDC: endpoint userTrades failed", "ETHUSDC: endpoint income failed", "ETHUSDC: endpoint orders failed", "SOLUSDC: endpoint premiumIndex failed", "SOLUSDC: endpoint commissionRate failed", "SOLUSDC: endpoint leverageBracket failed", "SOLUSDC: endpoint userTrades failed", "SOLUSDC: endpoint income failed", "SOLUSDC: endpoint orders failed", "BNBUSDC: endpoint premiumIndex failed", "BNBUSDC: endpoint commissionRate failed", "BNBUSDC: endpoint leverageBracket failed", "BNBUSDC: endpoint userTrades failed", "BNBUSDC: endpoint income failed", "BNBUSDC: endpoint orders failed"],
+    "base_url": "https://demo-fapi.binance.com",
+    "mode": "virtual",
+    "raw_status": {
+      "account": {"error": "接口金鑰 / Secret 未設定", "missing_env": ["BINANCE_UM_VIRTUAL_API_KEY", "BINANCE_UM_VIRTUAL_API_SECRET"], "ok": false, "status_code": null},
+      "balance": {"error": "接口金鑰 / Secret 未設定", "missing_env": ["BINANCE_UM_VIRTUAL_API_KEY", "BINANCE_UM_VIRTUAL_API_SECRET"], "ok": false, "status_code": null},
+      "orders": {"error": "接口金鑰 / Secret 未設定", "missing_env": ["BINANCE_UM_VIRTUAL_API_KEY", "BINANCE_UM_VIRTUAL_API_SECRET"], "ok": false, "status_code": null},
+      "position_errors": [{"result": {"error": "接口金鑰 / Secret 未設定", "missing_env": ["BINANCE_UM_VIRTUAL_API_KEY", "BINANCE_UM_VIRTUAL_API_SECRET"], "mode": "virtual", "ok": false}, "symbol": "ALL"}]
+    }
+  },
+  "websocket": {"ok": true, "market_status": "connecting", "book_status": "connecting", "market_last_error": "", "book_last_error": "", "fresh_mark_price_count": 0, "newest_mark_price_at": "-"},
+  "process_monitor": {"ok": true, "pid": 10632, "engine_tick_lock_free": true, "websocket_threads": [{"alive": true, "name": "public"}, {"alive": true, "name": "book"}, {"alive": false, "name": "user"}, {"alive": true, "name": "bootstrap"}]},
+  "engine_plan": {"ok": true, "enabled": false, "auto_select_paused": true, "plan_symbols": ["BNBUSDC", "BTCUSDC", "ETHUSDC", "SOLUSDC"]},
+  "launch_preflight": {
+    "ok": false,
+    "blocking_items": [{"item": "正式 API 金鑰已設定", "ok": false}, {"item": "即時 Mark Price 新鮮", "ok": false}, {"item": "所有可見候選幣有一年 4H 回測實證", "ok": false}, {"blocking": true, "item": "小額灰度需手動確認", "ok": false}]
+  },
+  "pytest": {"full": "203 passed, 13 skipped", "targeted_safety": "23 passed", "browser_e2e": "13 skipped due Chromium localhost ERR_BLOCKED_BY_ADMINISTRATOR in sandbox", "log_files": ["asnow_v10_51_pytest_rs.log", "asnow_v10_51_targeted_safety.log", "asnow_v10_51_browser_e2e.log"]},
+  "blocking_items": ["actual cwd is not requested Mac workdir; Mac local 5050 cannot be verified from sandbox", "365-day / ~2190-bar 4H backtest evidence missing for visible candidates", "Binance reconciliation dataQuality is not clean", "Binance account/balance/orders truth unavailable; API keys not set in this sandbox", "fresh mark price WebSocket evidence missing", "formal launch preflight is not satisfied", "browser E2E did not fully pass in sandbox; Chromium blocked localhost, tests skipped", "small-amount grayscale launch requires manual confirmation and remains false"]
+}
