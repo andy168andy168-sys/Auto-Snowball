@@ -1,0 +1,44 @@
+{
+  "version": "10.51",
+  "audit_time": "2026-07-02T15:35:45+08:00",
+  "status": "blocked",
+  "actual_5050_version": "10.51",
+  "actual_5050_port": 5050,
+  "runtime_zip_match": true,
+  "release_sha256": "0801340950d53cff8b11dbe593f813c6514b5440cfa8ee3cc692d1f26421f41b",
+  "tests": {
+    "pytest": "216 passed",
+    "production_safety_websocket": "27 passed",
+    "browser_e2e": "12 passed",
+    "actual_5050_playwright": "2 passed",
+    "release_tooling": "17 passed",
+    "release_test_placement": "PASS",
+    "static_production_gate": "PASS"
+  },
+  "market": {
+    "visible_count": 10,
+    "sorted_descending": true,
+    "dynamic_price_updates": true,
+    "required_live_fields": true
+  },
+  "backtest": {
+    "visible_count": 10,
+    "lookback_days": 365,
+    "bars_4h": 2190,
+    "held_positions_included": true,
+    "ok": true
+  },
+  "formula_a_to_b_ok": true,
+  "binance_reconciliation_ok": true,
+  "book_stream": {
+    "status": "connected",
+    "book_ticker_count": 10,
+    "event_time_advancing": true
+  },
+  "blocking_items": [
+    "正式 API 金鑰已設定",
+    "小額灰度需手動確認"
+  ],
+  "real_orders_submitted": false,
+  "live_mode_enabled": false
+}

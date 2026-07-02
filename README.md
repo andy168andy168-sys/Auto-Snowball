@@ -4,25 +4,26 @@ Auto Snowball Web release archive for USDC futures rolling strategy monitoring.
 
 ## Current release target
 
-- Release version: `v10.50`
-- Release manifest: `releases/v10.50/manifest.json`
-- Release archive filename after reconstruction: `auto_snowball_web_v10_50_overview_top4_shared_ui_e2e.zip`
-- Release archive SHA256: `0d5f5b38366385d2396a7f202819302f24f3d548e59ba905fde4368179028163`
+- Release version: `v10.51`
+- Release manifest: `releases/v10.51/manifest.json`
+- Release archive filename after reconstruction: `auto_snowball_web_v10_51_book_stream_resubscribe_e2e.zip`
+- Release archive SHA256: `0801340950d53cff8b11dbe593f813c6514b5440cfa8ee3cc692d1f26421f41b`
 - CI mode: safe / read-only only
 - Formal live-capital status: blocked until `正式 API 金鑰已設定` and `小額灰度需手動確認` both pass.
 
-## Main v10.50 changes
+## Main v10.51 changes
 
-- Overview and execution center share the same Top-4 rolling-coin component and live update chain.
-- Execution center removes six duplicate summary cards and their obsolete update targets.
-- Formula/version labels, ranking, execution plan and A-to-B dense-zone guard are synchronized to `D+E/v10.50`.
-- Release validation: `213 passed`; targeted production safety suite: `25 passed`; live 5050 Playwright E2E: `1 passed`.
+- Candidate-symbol refreshes resubscribe only symbol-dependent market streams; the all-market `!bookTicker` stream remains connected.
+- `bookTicker` payloads are routed before the generic ticker parser, restoring bid/ask and spread caches.
+- Valid market events atomically recover stale WebSocket status and clear old errors.
+- V10.50 shared Top-4 overview/execution rendering remains unchanged.
+- Release validation: `216 passed`; targeted production safety/WebSocket suite: `27 passed`; browser E2E: `12 passed`; live 5050 Playwright verification: `2 passed`.
 - The archive excludes API keys, runtime state, caches, logs and Python caches.
 - This GitHub sync does not approve or enable real trading.
 
 ## Launch-gate tooling patch v10.49
 
-- This is a tooling-only compatibility patch for auditing the V10.48 runtime; the current application release remains V10.50.
+- This was a tooling-only compatibility patch for auditing the V10.48 runtime; it did not change the application release or trading formulas.
 - The launch gate validates the runtime dense-zone relationship (`total width = 2 × half width`) and explicit A→B synchronization instead of hard-coding retired formula values.
 - Formal preflight requests use a longer timeout and report the actual blocking items.
 - Browser navigation uses a 30-second `load` wait plus a short observation window.
@@ -30,10 +31,11 @@ Auto Snowball Web release archive for USDC futures rolling strategy monitoring.
 
 ## Current GitHub Actions archive gate
 
-- The existing rebuild workflow still targets the historical `v10.43` base64-parts archive.
-- The checked-in `v10.50` base64 parts reconstruct the directly verified release artifact; the workflow target was not changed by this sync.
+- The rebuild workflow targets the `v10.51` base64-parts archive.
+- Existing executable safety tests inside the release are compiled and preserved; missing gate tests are injected before validation.
+- The checked-in `v10.51` base64 parts reconstruct the directly verified release artifact.
 
-## Main v10.43 changes
+## Historical v10.43 changes
 
 - GitHub Actions release CI now targets the complete `v10.43` manifest and seven base64 parts.
 - Visible non-held candidates with less than 365 days / 2190 bars of 4H history are excluded before ranking; held symbols remain visible and launch-blocking.
@@ -46,7 +48,7 @@ Auto Snowball Web release archive for USDC futures rolling strategy monitoring.
 
 ## Release archive safety-test gate
 
-The release CI rebuilds the `v10.43` archive and injects pytest files required by `scripts/assert_release_tests_inside_archive.py` directly into the ZIP before hash validation and extraction.
+The release CI rebuilds the `v10.51` archive and verifies or injects pytest files required by `scripts/assert_release_tests_inside_archive.py` before extraction.
 
 Injected release-only safety evidence covers:
 
@@ -65,14 +67,14 @@ Injected release-only safety evidence covers:
 ```bash
 python - <<'PY'
 import base64, json, pathlib
-release = pathlib.Path("releases/v10.50")
+release = pathlib.Path("releases/v10.51")
 manifest = json.loads((release / "manifest.json").read_text())
 payload = "".join((release / "parts" / name).read_text().strip() for name in manifest["parts"])
 (release / manifest["filename"]).write_bytes(base64.b64decode(payload))
 PY
-cd releases/v10.50 && shasum -a 256 -c SHA256SUMS && cd ../..
-unzip releases/v10.50/auto_snowball_web_v10_50_overview_top4_shared_ui_e2e.zip
-cd auto_snowball_web_v10_50_overview_top4_shared_ui_e2e
+cd releases/v10.51 && shasum -a 256 -c SHA256SUMS && cd ../..
+unzip releases/v10.51/auto_snowball_web_v10_51_book_stream_resubscribe_e2e.zip
+cd auto_snowball_web_v10_51_book_stream_resubscribe_e2e
 python -m pip install -r requirements.txt
 pytest -q
 python main.py

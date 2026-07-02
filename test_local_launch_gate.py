@@ -1,3 +1,6 @@
+import zipfile
+from pathlib import Path
+
 from scripts import local_launch_gate
 from scripts import local_launch_gate_5050_binance as gate_5050
 from scripts import rebuild_release
@@ -240,3 +243,19 @@ def test_injected_release_gate_files_compile():
     for name, content in rebuild_release.RELEASE_ARCHIVE_TESTS.items():
         if name.endswith(".py"):
             compile(content, name, "exec")
+
+
+def test_release_rebuild_preserves_existing_executable_gate_tests(tmp_path):
+    archive = tmp_path / "release.zip"
+    first_name = next(iter(rebuild_release.RELEASE_ARCHIVE_TESTS))
+    existing_path = f"release_bundle/{first_name}"
+    existing_content = "def test_existing_gate():\n    assert True\n"
+    with zipfile.ZipFile(archive, "w") as zf:
+        zf.writestr(existing_path, existing_content)
+
+    rebuild_release.inject_release_tests(archive)
+
+    with zipfile.ZipFile(archive) as zf:
+        assert zf.read(existing_path).decode("utf-8") == existing_content
+        names = {Path(name).name for name in zf.namelist()}
+        assert set(rebuild_release.RELEASE_ARCHIVE_TESTS) <= names
