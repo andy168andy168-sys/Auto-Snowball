@@ -8,7 +8,7 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-RELEASE_VERSION = os.environ.get("AUTO_SNOWBALL_RELEASE_VERSION", "v10.43")
+RELEASE_VERSION = os.environ.get("AUTO_SNOWBALL_RELEASE_VERSION", "v10.51")
 RELEASE_DIR = ROOT / "releases" / RELEASE_VERSION
 PARTS_DIR = RELEASE_DIR / "parts"
 MANIFEST_PATH = RELEASE_DIR / "manifest.json"
@@ -185,9 +185,16 @@ def test_5050_auto_select_market_live_browser_e2e_has_no_errors():
 def inject_release_tests(zip_path: Path) -> None:
     with zipfile.ZipFile(zip_path, "a", compression=zipfile.ZIP_DEFLATED) as zf:
         existing = set(zf.namelist())
+        existing_by_basename = {Path(path).name: path for path in existing}
         for name, content in RELEASE_ARCHIVE_TESTS.items():
-            if name in existing:
-                raise SystemExit(f"release archive already contains injected gate file: {name}")
+            existing_path = existing_by_basename.get(name)
+            if existing_path:
+                if name.endswith(".py"):
+                    try:
+                        compile(zf.read(existing_path).decode("utf-8"), existing_path, "exec")
+                    except (SyntaxError, UnicodeDecodeError) as exc:
+                        raise SystemExit(f"existing release gate test is invalid: {existing_path}: {exc}") from exc
+                continue
             if name.endswith(".py"):
                 try:
                     compile(content, name, "exec")

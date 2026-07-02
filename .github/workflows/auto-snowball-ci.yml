@@ -7,16 +7,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      AUTO_SNOWBALL_RELEASE_VERSION: "v10.43"
+      AUTO_SNOWBALL_RELEASE_VERSION: "v10.51"
       AUTO_SNOWBALL_SAFE_MODE: "1"
       AUTO_SNOWBALL_NO_REAL_ORDERS: "1"
       AUTO_SNOWBALL_READ_ONLY: "1"
       BINANCE_READ_ONLY: "1"
       FLASK_ENV: "testing"
       PORT: "5050"
-      RELEASE_DIR: "releases/v10.43"
-      RELEASE_ZIP: "releases/v10.43/auto_snowball_web_v10_43_candidate_history_gate.zip"
-      RELEASE_EXTRACT_DIR: "auto_snowball_web_v10_43"
+      RELEASE_DIR: "releases/v10.51"
+      RELEASE_ZIP: "releases/v10.51/auto_snowball_web_v10_51_book_stream_resubscribe_e2e.zip"
+      RELEASE_EXTRACT_DIR: "release_extract"
     steps:
       - uses: actions/checkout@v4
 
@@ -31,7 +31,7 @@ jobs:
           pip install -r requirements.txt
           python -m playwright install --with-deps chromium
 
-      - name: Rebuild v10.43 archive with executable safety tests
+      - name: Rebuild v10.51 archive with executable safety tests
         run: |
           set -o pipefail
           mkdir -p evidence
@@ -49,14 +49,14 @@ jobs:
           if p.parent.exists():
               print(f'Directory contents: {[item.name for item in p.parent.iterdir()]}')
           if not p.exists() or p.stat().st_size <= 0:
-              raise SystemExit('rebuilt v10.43 release archive missing')
+              raise SystemExit('rebuilt v10.51 release archive missing')
           actual = hashlib.sha256(p.read_bytes()).hexdigest()
           payload = {'release_version': os.environ.get('AUTO_SNOWBALL_RELEASE_VERSION'), 'rebuilt_archive_sha256': actual, 'bytes': p.stat().st_size}
           pathlib.Path('evidence/rebuilt_archive_sha256.json').write_text(json.dumps(payload, indent=2), encoding='utf-8')
           print(payload)
           PY
 
-      - name: Extract v10.43 release archive
+      - name: Extract v10.51 release archive
         run: |
           rm -rf "$RELEASE_EXTRACT_DIR"
           unzip -q "$RELEASE_ZIP" -d "$RELEASE_EXTRACT_DIR"
@@ -73,12 +73,12 @@ jobs:
             --extract-dir "$RELEASE_EXTRACT_DIR" | tee evidence/static_production_gate_audit.log
 
       - name: Install release dependencies
-        working-directory: auto_snowball_web_v10_43
+        working-directory: release_extract/auto_snowball_web_v10_51_book_stream_resubscribe_e2e
         run: |
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
       - name: Full non-browser pytest suite
-        working-directory: auto_snowball_web_v10_43
+        working-directory: release_extract/auto_snowball_web_v10_51_book_stream_resubscribe_e2e
         run: |
           set -o pipefail
           python -m pytest -q -ra \
@@ -86,17 +86,17 @@ jobs:
             --ignore=test_v148_browser_playwright_5050_auto_select.py \
             --ignore=test_v82_playwright_e2e.py \
             --ignore=test_v94_e2e_full_coverage.py \
-            --ignore=test_v103_playwright_strategy_calculator.py | tee ../evidence/pytest_non_browser.log
+            --ignore=test_v103_playwright_strategy_calculator.py | tee ../../evidence/pytest_non_browser.log
 
       - name: 5050 Flask smoke and browser E2E
-        working-directory: auto_snowball_web_v10_43
+        working-directory: release_extract/auto_snowball_web_v10_51_book_stream_resubscribe_e2e
         run: |
           python -m pytest -q \
             test_browser_e2e_playwright_5050_auto_select.py \
             test_v82_playwright_e2e.py \
             test_v94_e2e_full_coverage.py \
             test_v103_playwright_strategy_calculator.py
-          python main.py > ../auto_snowball_5050.log 2>&1 & echo $! > ../auto_snowball_5050.pid
+          python main.py > ../../auto_snowball_5050.log 2>&1 & echo $! > ../../auto_snowball_5050.pid
           python - <<'PY'
           import sys, time, urllib.error, urllib.request
           url = 'http://127.0.0.1:5050/'
@@ -111,14 +111,14 @@ jobs:
               except Exception as exc:
                   last = exc
                   time.sleep(1)
-          print(open('../auto_snowball_5050.log', encoding='utf-8', errors='ignore').read())
+          print(open('../../auto_snowball_5050.log', encoding='utf-8', errors='ignore').read())
           raise SystemExit(f'5050 did not become reachable: {last}')
           PY
           python -m pytest -q test_v148_browser_playwright_5050_auto_select.py
-          python ../scripts/local_launch_gate.py \
+          python ../../scripts/local_launch_gate.py \
             --workdir . \
             --url http://127.0.0.1:5050 \
-            --output ../evidence/local_launch_gate_ci.json \
+            --output ../../evidence/local_launch_gate_ci.json \
             --ci
 
       - name: Stop 5050 server
