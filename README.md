@@ -4,11 +4,26 @@ Auto Snowball Web release archive for USDC futures rolling strategy monitoring.
 
 ## Current release target
 
-- Release version: `v10.43`
-- Release manifest: `releases/v10.43/manifest.json`
-- Release archive filename: `auto_snowball_web_v10_43_candidate_history_gate.zip`
-- Source package SHA256 before safety-test injection: `4cb6161ec59e8635439a78c2a48561ed722b55722acaab579ead64d98add1072`
+- Release version: `v10.50`
+- Release manifest: `releases/v10.50/manifest.json`
+- Release archive filename after reconstruction: `auto_snowball_web_v10_50_overview_top4_shared_ui_e2e.zip`
+- Release archive SHA256: `0d5f5b38366385d2396a7f202819302f24f3d548e59ba905fde4368179028163`
 - CI mode: safe / read-only only
+- Formal live-capital status: blocked until `正式 API 金鑰已設定` and `小額灰度需手動確認` both pass.
+
+## Main v10.50 changes
+
+- Overview and execution center share the same Top-4 rolling-coin component and live update chain.
+- Execution center removes six duplicate summary cards and their obsolete update targets.
+- Formula/version labels, ranking, execution plan and A-to-B dense-zone guard are synchronized to `D+E/v10.50`.
+- Release validation: `213 passed`; targeted production safety suite: `25 passed`; live 5050 Playwright E2E: `1 passed`.
+- The archive excludes API keys, runtime state, caches, logs and Python caches.
+- This GitHub sync does not approve or enable real trading.
+
+## Current GitHub Actions archive gate
+
+- The existing rebuild workflow still targets the historical `v10.43` base64-parts archive.
+- The checked-in `v10.50` base64 parts reconstruct the directly verified release artifact; the workflow target was not changed by this sync.
 
 ## Main v10.43 changes
 
@@ -40,9 +55,16 @@ Injected release-only safety evidence covers:
 ## Restore release zip
 
 ```bash
-AUTO_SNOWBALL_RELEASE_VERSION=v10.43 python scripts/rebuild_release.py
-unzip releases/v10.43/auto_snowball_web_v10_43_candidate_history_gate.zip -d auto_snowball_web_v10_43
-cd auto_snowball_web_v10_43
+python - <<'PY'
+import base64, json, pathlib
+release = pathlib.Path("releases/v10.50")
+manifest = json.loads((release / "manifest.json").read_text())
+payload = "".join((release / "parts" / name).read_text().strip() for name in manifest["parts"])
+(release / manifest["filename"]).write_bytes(base64.b64decode(payload))
+PY
+cd releases/v10.50 && shasum -a 256 -c SHA256SUMS && cd ../..
+unzip releases/v10.50/auto_snowball_web_v10_50_overview_top4_shared_ui_e2e.zip
+cd auto_snowball_web_v10_50_overview_top4_shared_ui_e2e
 python -m pip install -r requirements.txt
 pytest -q
 python main.py

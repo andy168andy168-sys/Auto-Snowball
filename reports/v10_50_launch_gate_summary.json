@@ -1,0 +1,35 @@
+{
+  "version": "10.50",
+  "run_time": "2026-07-02T10:25:10+08:00",
+  "live_readiness": "NOT_READY_FOR_LIVE_CAPITAL",
+  "explicit_live_standard_statement_allowed": false,
+  "do_not_send_real_orders": true,
+  "runtime_5050": {
+    "ok": true,
+    "port": 5050,
+    "version": "10.50",
+    "actual_cwd": "/Users/andyna/Spyder/auto_snowball_web_v10_50_overview_top4_shared_ui_e2e"
+  },
+  "ranking_and_refresh_ok": true,
+  "visible_candidate_count": 10,
+  "backtest_evidence": {
+    "ok": true,
+    "lookback_days": 365,
+    "bars_per_symbol": 2190,
+    "interval": "4h"
+  },
+  "formula_a_to_b_sync_ok": true,
+  "reconciliation_ok": true,
+  "process_monitor_ok": true,
+  "tests": {
+    "full_pytest": "213 passed, 1 warning in 37.63s",
+    "targeted_production_safety": "25 passed, 1 warning in 0.64s",
+    "live_browser_e2e": "1 passed in 3.53s",
+    "browser_console_errors": 0
+  },
+  "launch_preflight_ok": false,
+  "blocking_items": [
+    "正式 API 金鑰已設定",
+    "小額灰度需手動確認"
+  ]
+}
