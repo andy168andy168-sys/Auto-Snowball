@@ -10,3 +10,4 @@ __pycache__/
 .roll_engine_parameters.json
 .market_sync_cache.json
 .DS_Store
+releases/*/*.zip

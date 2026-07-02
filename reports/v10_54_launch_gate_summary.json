@@ -1,0 +1,30 @@
+{
+  "version": "10.54",
+  "audit_time": "2026-07-02T17:32:34+08:00",
+  "status": "blocked",
+  "actual_5050": {
+    "version": "10.54",
+    "port": 5050,
+    "cwd": "/Users/andyna/Spyder/auto_snowball_web_v10_54_read_only_gate_hardening"
+  },
+  "tests": {
+    "pytest": "225 passed",
+    "production_safety_websocket": "32 passed",
+    "browser_http_e2e": "12 passed",
+    "actual_5050_playwright": "2 passed",
+    "launch_gate_tooling": "19 passed",
+    "release_test_placement": "PASS",
+    "static_production_gate": "PASS"
+  },
+  "release_sha256": "f3f0cc8fc5ccdcc622b1d617aa2ba65de1c0740ba4eed00c88419b37ab8b9c69",
+  "ranking_live_backtest_formula_ws_process_monitor_ok": true,
+  "binance_private_reconciliation_ok": false,
+  "blocking_items": [
+    "安全／唯讀交易鎖已解除",
+    "正式 API 金鑰已設定",
+    "Binance 私有對帳與持倉插入真值不可用",
+    "小額灰度需手動確認"
+  ],
+  "real_orders_submitted": false,
+  "live_mode_enabled": false
+}

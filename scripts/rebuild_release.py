@@ -8,7 +8,7 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-RELEASE_VERSION = os.environ.get("AUTO_SNOWBALL_RELEASE_VERSION", "v10.51")
+RELEASE_VERSION = os.environ.get("AUTO_SNOWBALL_RELEASE_VERSION", "v10.54")
 RELEASE_DIR = ROOT / "releases" / RELEASE_VERSION
 PARTS_DIR = RELEASE_DIR / "parts"
 MANIFEST_PATH = RELEASE_DIR / "manifest.json"

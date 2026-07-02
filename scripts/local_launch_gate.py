@@ -117,26 +117,29 @@ def validate_market(payload: Any, require_backtest: bool = True) -> tuple[bool, 
 
 def validate_market_refresh(before: Any, after: Any, require_backtest: bool = True) -> tuple[bool, str]:
     ok, detail = validate_market(after, require_backtest=require_backtest)
-    try:
-        with sync_playwright() as pw:
-            browser = pw.chromium.launch()
-            page = browser.new_page()
-            page.on("console", lambda m: errors.append(f"console:{m.type}:{m.text}") if m.type == "error" else None)
-            page.on("pageerror", lambda e: errors.append(f"pageerror:{e}"))
-            for url in urls:
-                resp = page.goto(url, wait_until="load", timeout=30000)
-                if not resp or resp.status >= 500:
-                    errors.append(f"{url} status={resp.status if resp else 'NO_RESPONSE'}")
-                page.wait_for_timeout(750)
-            browser.close()
-    except Exception as exc:
-        return False, f"Playwright browser E2E failed to run: {exc}"
-        out = subprocess.getoutput(
-            "(command -v lsof >/dev/null && lsof -nP -iTCP:5050 -sTCP:LISTEN) || "
-            "(command -v ss >/dev/null && ss -ltnp 'sport = :5050') || "
-            "(command -v netstat >/dev/null && netstat -ltnp 2>/dev/null | awk '$4 ~ /:5050$/') || true"
-        )
-        add(report, "127.0.0.1:5050 listening process", "5050" in out, out[-2000:] if out.strip() else "no listener detected")
+    if not ok:
+        return ok, detail
+    before_lists = candidates(before)
+    after_lists = candidates(after)
+    if not before_lists or not after_lists:
+        return False, "market refresh payload missing candidate rows"
+    before_rows = {
+        str(row.get("symbol") or row.get("pair") or row.get("s")): row
+        for row in max(before_lists, key=len)
+    }
+    after_rows = {
+        str(row.get("symbol") or row.get("pair") or row.get("s")): row
+        for row in max(after_lists, key=len)
+    }
+    common = set(before_rows) & set(after_rows)
+    if not common:
+        return False, "market refresh snapshots have no common symbols"
+    dynamic_keys = ("price", "dense_zone_arrival_status", "zone_entry_score", "rank")
+    changed = any(
+        before_rows[symbol].get(key) != after_rows[symbol].get(key)
+        for symbol in common
+        for key in dynamic_keys
+    )
     before_stamp = before.get("updated_at") if isinstance(before, dict) else None
     after_stamp = after.get("updated_at") if isinstance(after, dict) else None
     if not changed and (not before_stamp or before_stamp == after_stamp):
