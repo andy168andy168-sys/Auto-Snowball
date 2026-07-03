@@ -57,11 +57,40 @@ def write_parts(data: bytes, parts_dir: Path, count: int = 8) -> list[str]:
     return names
 
 
+def release_manifest(args, filename: str, size: int, sha256: str, parts: list[str]) -> dict:
+    blocking_items = list(args.blocking_item or [])
+    if args.status == "blocked" and not blocking_items:
+        blocking_items = ["formal launch evidence not provided"]
+    return {
+        "version": args.version,
+        "name": args.name,
+        "filename": filename,
+        "zip_size_bytes": size,
+        "sha256": sha256,
+        "checksum_file": "SHA256SUMS",
+        "parts": parts,
+        "tests": args.tests,
+        "production_safety_websocket": args.safety_tests,
+        "browser_http_e2e": args.browser_e2e,
+        "actual_5050_playwright": args.actual_5050_playwright,
+        "release_tooling": args.release_tooling,
+        "status": args.status,
+        "blocking_items": blocking_items,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build a sanitized, reproducible Auto Snowball release")
     parser.add_argument("--source", required=True)
     parser.add_argument("--version", required=True)
     parser.add_argument("--name", required=True)
+    parser.add_argument("--tests", default="not recorded")
+    parser.add_argument("--safety-tests", default="not recorded")
+    parser.add_argument("--browser-e2e", default="not recorded")
+    parser.add_argument("--actual-5050-playwright", default="not recorded")
+    parser.add_argument("--release-tooling", default="not recorded")
+    parser.add_argument("--status", choices=["blocked", "ready"], default="blocked")
+    parser.add_argument("--blocking-item", action="append", default=[])
     args = parser.parse_args()
 
     source = Path(args.source).expanduser().resolve()
@@ -74,26 +103,7 @@ def main() -> int:
     data = output.read_bytes()
     sha256 = hashlib.sha256(data).hexdigest()
     parts = write_parts(data, release_dir / "parts")
-    manifest = {
-        "version": args.version,
-        "name": args.name,
-        "filename": filename,
-        "zip_size_bytes": len(data),
-        "sha256": sha256,
-        "checksum_file": "SHA256SUMS",
-        "parts": parts,
-        "tests": "225 passed",
-        "production_safety_websocket": "32 passed",
-        "browser_http_e2e": "12 passed",
-        "actual_5050_playwright": "2 passed",
-        "release_tooling": "19 passed; test placement PASS",
-        "status": "blocked",
-        "blocking_items": [
-            "安全／唯讀交易鎖已解除",
-            "正式 API 金鑰已設定",
-            "小額灰度需手動確認",
-        ],
-    }
+    manifest = release_manifest(args, filename, len(data), sha256, parts)
     (release_dir / "manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",

@@ -1,0 +1,28 @@
+{
+  "version": "10.63",
+  "name": "auto_snowball_web_v10_63_normalized_scores_ui_redesign_e2e",
+  "filename": "auto_snowball_web_v10_63_normalized_scores_ui_redesign_e2e.zip",
+  "zip_size_bytes": 6033956,
+  "sha256": "0e7157cd2f484d4e97f23ab9628e3a7d9099e9c02fe2657ea923a4d226476059",
+  "checksum_file": "SHA256SUMS",
+  "parts": [
+    "part_00.b64",
+    "part_01.b64",
+    "part_02.b64",
+    "part_03.b64",
+    "part_04.b64",
+    "part_05.b64",
+    "part_06.b64",
+    "part_07.b64"
+  ],
+  "tests": "265 passed",
+  "production_safety_websocket": "70 passed",
+  "browser_http_e2e": "13 passed; seven-page console/page errors 0",
+  "actual_5050_playwright": "passed: actual 5050 is v10.63; local gate blocked only by formal credentials and manual canary approval",
+  "release_tooling": "package_release.py sanitized artifact",
+  "status": "blocked",
+  "blocking_items": [
+    "正式 API 金鑰未設定",
+    "小額灰度需使用者手動確認"
+  ]
+}
