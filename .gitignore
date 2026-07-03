@@ -11,3 +11,4 @@ __pycache__/
 .market_sync_cache.json
 .DS_Store
 releases/*/*.zip
+_work/
