@@ -28,6 +28,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Try downloading auto_snowball_web artifact (from prior job runs)
+        uses: actions/download-artifact@v4
+        with:
+          name: auto_snowball_web
+          path: downloaded-release
+
       - name: Try current workflow artifact
         shell: bash
         env:
@@ -69,6 +75,8 @@ jobs:
           set -euo pipefail
           echo "Workspace top-level:"
           ls -la
+          echo "Downloaded-release dir (if any):"
+          ls -la downloaded-release || true
           echo "Searching for release zip candidates..."
           find . -path './.git' -prune -o -type f -name 'auto_snowball_web_v*.zip' -print | sort -V || true
           zip_path="$(find . -path './.git' -prune -o -type f -name 'auto_snowball_web_v*.zip' -print | sort -V | tail -n 1 || true)"
