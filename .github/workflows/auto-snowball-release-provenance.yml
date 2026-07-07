@@ -2,7 +2,16 @@ name: Auto Snowball Release Provenance
 
 on:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Optional GitHub Release tag to download auto_snowball_web_v*.zip from'
+        required: false
+        type: string
+  release:
+    types: [published]
   push:
+    tags:
+      - 'v*'
     paths:
       - 'releases/**'
       - 'auto_snowball_web_v*.zip'
@@ -13,21 +22,67 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: read
       id-token: write
       attestations: write
     steps:
       - uses: actions/checkout@v4
+
+      - name: Try current workflow artifact
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          echo "Trying to download release-zip artifact from this workflow run..."
+          gh run download "$GITHUB_RUN_ID" --name release-zip --dir . || true
+
+      - name: Try GitHub Release asset
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_RELEASE_TAG: ${{ inputs.release_tag || '' }}
+        run: |
+          set -euo pipefail
+          tag="$INPUT_RELEASE_TAG"
+          if [ -z "$tag" ] && [ "${GITHUB_EVENT_NAME:-}" = "release" ]; then
+            tag="${GITHUB_REF_NAME:-}"
+          fi
+          if [ -z "$tag" ] && [[ "${GITHUB_REF:-}" == refs/tags/* ]]; then
+            tag="${GITHUB_REF_NAME:-}"
+          fi
+          if [ -z "$tag" ]; then
+            echo "No release tag supplied or detected; skipping release asset download."
+            exit 0
+          fi
+          echo "Trying to download release zip asset from tag: $tag"
+          mkdir -p downloaded-release
+          gh release download "$tag" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern 'auto_snowball_web_v*.zip' \
+            --dir downloaded-release || true
 
       - name: Locate release archive
         id: locate
         shell: bash
         run: |
           set -euo pipefail
-          zip_path="$(find . -maxdepth 4 -type f -name 'auto_snowball_web_v*.zip' | sort -V | tail -n 1 || true)"
+          echo "Workspace top-level:"
+          ls -la
+          echo "Searching for release zip candidates..."
+          find . -path './.git' -prune -o -type f -name 'auto_snowball_web_v*.zip' -print | sort -V || true
+          zip_path="$(find . -path './.git' -prune -o -type f -name 'auto_snowball_web_v*.zip' -print | sort -V | tail -n 1 || true)"
           if [ -z "$zip_path" ]; then
-            echo "No release zip found for provenance attestation" >&2
+            echo "No release zip found for provenance attestation." >&2
+            echo "Expected one of:" >&2
+            echo "  1) a checked-in auto_snowball_web_v*.zip file," >&2
+            echo "  2) a current-run artifact named release-zip containing auto_snowball_web_v*.zip," >&2
+            echo "  3) a GitHub Release asset named auto_snowball_web_v*.zip." >&2
+            echo "Workspace file sample for debugging:" >&2
+            find . -path './.git' -prune -o -type f -maxdepth 6 -print | sort | head -n 200 >&2 || true
             exit 1
           fi
+          echo "Selected release zip: $zip_path"
           echo "zip_path=$zip_path" >> "$GITHUB_OUTPUT"
           sha256sum "$zip_path" | tee release-archive.sha256
 
