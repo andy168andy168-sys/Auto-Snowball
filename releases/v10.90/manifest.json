@@ -1,0 +1,31 @@
+{
+  "version": "10.90",
+  "name": "auto_snowball_web_v10_90_centerline_crossing_guard",
+  "filename": "auto_snowball_web_v10_90_centerline_crossing_guard.zip",
+  "zip_size_bytes": 6156581,
+  "sha256": "7af4c846f71321b68adab6054b6ea7bd406303d3d9765f32f186020aa8a663b4",
+  "checksum_file": "SHA256SUMS",
+  "parts": [
+    "part_00.b64",
+    "part_01.b64",
+    "part_02.b64",
+    "part_03.b64",
+    "part_04.b64",
+    "part_05.b64",
+    "part_06.b64",
+    "part_07.b64"
+  ],
+  "tests": "runtime targeted 12 passed; runtime full pytest 333 passed; extracted archive pytest 333 passed; workspace pytest 25 passed",
+  "production_safety_websocket": "direct probes: evil Host 403, GET trade tick 405, GET refresh reconciliation/dense-width 405, cross-site POST 403, close-all without confirm 400; runtime tests include rate-limit/backoff, reconnect, idempotency, timeout recovery, duplicate guard, circuit breaker, close-all and process-monitor coverage",
+  "browser_http_e2e": "actual 5050 and isolated 5051 per-page Playwright sweeps: 8 pages plus /api/market/live HTTP 200, requestfailed/pageerror/console errors 0",
+  "actual_5050_playwright": "actual 5050 is still running v10.89 from /Users/andyna/Spyder/auto_snowball_web_v10_89_credential_state_hardening_e2e; v10.90 was packaged but not deployed/restarted",
+  "release_tooling": "formal_live_evidence.json excluded; CHANGELOG_v10_90.md and TEST_RESULT_v10_90.md included; package tooling pytest 25 passed; archive placement PASS",
+  "status": "blocked",
+  "blocking_items": [
+    "正式 API 金鑰已設定=false",
+    "小額灰度需手動確認=false",
+    "actual 5050 still v10.89 until operator-approved restart/deploy of v10.90",
+    "daily virtual/real performance 不可判定",
+    "GitHub push/PR sync pending connector or credentials"
+  ]
+}
