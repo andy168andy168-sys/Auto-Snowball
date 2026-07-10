@@ -1,0 +1,32 @@
+{
+  "version": "10.93",
+  "name": "auto_snowball_web_v10_93_fresh_centerline_cycle_guard",
+  "filename": "auto_snowball_web_v10_93_fresh_centerline_cycle_guard.zip",
+  "zip_size_bytes": 6168398,
+  "sha256": "387bbfeb345486a2ad0f1cf7d78b0819a429ef8df95aef0b93f04ff1673c07bb",
+  "checksum_file": "SHA256SUMS",
+  "parts": [
+    "part_00.b64",
+    "part_01.b64",
+    "part_02.b64",
+    "part_03.b64",
+    "part_04.b64",
+    "part_05.b64",
+    "part_06.b64",
+    "part_07.b64"
+  ],
+  "tests": "targeted 24 passed; py_compile PASS; full runtime pytest 342 passed, 1 warning; exact extracted archive pytest 342 passed, 1 warning",
+  "production_safety_websocket": "full pytest safety coverage passed; actual 5050 probes: cross-site POST 403, GET trading/dense refresh 405, real-mode POST blocked 409, close-all without confirm 400, process monitor ok; virtual start probe was reverted and is not counted as pass evidence",
+  "browser_http_e2e": "v10.93 isolated/in-process browser E2E 13 passed; actual 5050 browser sweep 8 pages plus /api/market/live HTTP 200, 0 console/page errors, 0 non-favicon failures",
+  "actual_5050_playwright": "actual 5050 remains running v10.92 at /Users/andyna/Spyder/auto_snowball_web_v10_92_centerline_then_breakout_e2e; browser sweep passed but runtime was not restarted into v10.93",
+  "release_tooling": "sanitized package excludes credentials/runtime cache/state/formal evidence; release generated from patched v10.93 source; exact extracted archive pytest passed",
+  "status": "blocked",
+  "blocking_items": [
+    "actual 5050 still running v10.92 until user-approved restart/deploy",
+    "launch-preflight: 正式 API 金鑰已設定=false",
+    "launch-preflight: 小額灰度需手動確認=false",
+    "formal-live-readiness evidence file missing/current evidence not registered",
+    "daily virtual and real performance remain 不可判定",
+    "real Binance private reconciliation/data-quality incomplete"
+  ]
+}
