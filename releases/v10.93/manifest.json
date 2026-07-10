@@ -15,18 +15,19 @@
     "part_06.b64",
     "part_07.b64"
   ],
-  "tests": "targeted 24 passed; py_compile PASS; full runtime pytest 342 passed, 1 warning; exact extracted archive pytest 342 passed, 1 warning",
-  "production_safety_websocket": "full pytest safety coverage passed; actual 5050 probes: cross-site POST 403, GET trading/dense refresh 405, real-mode POST blocked 409, close-all without confirm 400, process monitor ok; virtual start probe was reverted and is not counted as pass evidence",
-  "browser_http_e2e": "v10.93 isolated/in-process browser E2E 13 passed; actual 5050 browser sweep 8 pages plus /api/market/live HTTP 200, 0 console/page errors, 0 non-favicon failures",
-  "actual_5050_playwright": "actual 5050 remains running v10.92 at /Users/andyna/Spyder/auto_snowball_web_v10_92_centerline_then_breakout_e2e; browser sweep passed but runtime was not restarted into v10.93",
-  "release_tooling": "sanitized package excludes credentials/runtime cache/state/formal evidence; release generated from patched v10.93 source; exact extracted archive pytest passed",
+  "tests": "runtime pytest 342 passed, 1 warning in 56.17s; independent browser/E2E suite 14 passed, 1 warning in 53.85s",
+  "production_safety_websocket": "cross-site POST 403; GET trading/dense refresh/reconciliation refresh/action 405; process monitor websocket public/book/user alive; circuit breaker closed",
+  "browser_http_e2e": "actual 5050 in-app browser: 8 pages rendered, 0 console/page errors/visible error alerts; /audit-center slow initial navigation wait but full render completed",
+  "live_ranking_sync": "two read-only /api/market/live samples 3.5s apart; descending score order held; 7 of 10 rows changed live price or score; entry status, centerline entry score, and rank fields present",
+  "backtest_evidence": "10 visible candidates, each 2190 4H bars and 365 lookback days",
+  "binance_reconciliation": "virtual demo signed reconciliation account/balance/orders/data quality all ok for 4 symbols; real private coverage incomplete",
+  "daily_performance": "virtual 可判定 with 24 complete closed rounds; real 不可判定; no ranking score used as real win rate",
+  "dense_width_research": "read-only 70/30 validation; widths 1.0%, 1.5%, 2.0%, 2.5%, 3.0%, 4.0% all candidate; no runtime parameter change",
+  "actual_5050": "version 10.93 at /Users/andyna/Spyder/auto_snowball_web_v10_93_fresh_centerline_cycle_guard",
   "status": "blocked",
   "blocking_items": [
-    "actual 5050 still running v10.92 until user-approved restart/deploy",
     "launch-preflight: 正式 API 金鑰已設定=false",
     "launch-preflight: 小額灰度需手動確認=false",
-    "formal-live-readiness evidence file missing/current evidence not registered",
-    "daily virtual and real performance remain 不可判定",
-    "real Binance private reconciliation/data-quality incomplete"
+    "real private Binance reconciliation and real daily performance remain 不可判定"
   ]
 }
