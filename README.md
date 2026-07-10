@@ -4,12 +4,14 @@ Auto Snowball Web release archive for USDC futures rolling strategy monitoring.
 
 ## Current audit target
 
-- Latest generated candidate package: `v10.74`
-- Mac-local `127.0.0.1:5050` runtime: not externally verified by this connector environment; must be checked on the operator Mac before approval.
-- Latest generated archive: `auto_snowball_web_v10_74_ui_label_clarity_e2e.zip`
-- Archive SHA256: `4bbd3b78a850d7130e96d07d8f40fc6d8d3b59dc90e1b11ed34787cc51271db9`
-- CI mode: safe / read-only only
-- Formal capital status: **blocked**. Mac-local 5050 browser E2E, signed Binance reconciliation, 365-day / ~2190 4H backtest evidence, dense-width validation, formal preflight, and manual small-canary approval are still required.
+- Latest generated candidate package: `v10.94`
+- Candidate archive: `auto_snowball_web_v10_94_cross_version_state_persistence.zip`
+- Candidate SHA256: `a8674cc8c4033d58a41dc2e4de9459474c13a5360341b49472283fad1307b67f`
+- Actual Mac-local `127.0.0.1:5050`: v10.93 at `/Users/andyna/Spyder/auto_snowball_web_v10_93_fresh_centerline_cycle_guard`; v10.94 is not deployed or restarted.
+- v10.94 fixes cross-version roll-state loss: state is also saved outside versioned runtime directories at `~/.local/state/auto-snowball/.roll_engine_state.json`, so opened L2-L10 stages and order IDs survive a versioned runtime switch.
+- Validation: v10.94 runtime pytest `343 passed`; targeted state persistence/recovery `7 passed`; independent browser/E2E `14 passed`; exact extracted archive pytest `343 passed`.
+- CI mode: safe / read-only only.
+- Formal capital status: **blocked** by `正式 API 金鑰已設定=false` and `小額灰度需手動確認=false`; real private Binance reconciliation/daily performance remains `不可判定`.
 
 ## Main v10.74 changes
 
