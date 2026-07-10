@@ -1,0 +1,19 @@
+{
+  "version": "10.94",
+  "name": "auto_snowball_web_v10_94_cross_version_state_persistence",
+  "filename": "auto_snowball_web_v10_94_cross_version_state_persistence.zip",
+  "zip_size_bytes": 6173387,
+  "sha256": "a8674cc8c4033d58a41dc2e4de9459474c13a5360341b49472283fad1307b67f",
+  "checksum_file": "SHA256SUMS",
+  "parts": ["part_00.b64", "part_01.b64", "part_02.b64", "part_03.b64", "part_04.b64", "part_05.b64", "part_06.b64", "part_07.b64"],
+  "tests": "runtime pytest 343 passed, 1 warning in 34.13s; targeted persistence/recovery 7 passed; independent browser/E2E 14 passed, 1 warning in 34.98s; exact extracted archive pytest 343 passed in 43.65s",
+  "production_safety_websocket": "cross-site POST 403; GET trading/dense refresh/reconciliation refresh/action 405; process monitor and circuit breaker tests passed",
+  "actual_5050": "v10.93 at /Users/andyna/Spyder/auto_snowball_web_v10_93_fresh_centerline_cycle_guard; v10.94 not deployed",
+  "release_tooling": "sanitized package excludes credentials/cache/runtime state/formal evidence",
+  "status": "blocked",
+  "blocking_items": [
+    "actual 5050 remains v10.93 until user-approved restart/deploy",
+    "正式 API 金鑰已設定=false",
+    "小額灰度需手動確認=false"
+  ]
+}
