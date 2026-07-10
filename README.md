@@ -4,14 +4,14 @@ Auto Snowball Web release archive for USDC futures rolling strategy monitoring.
 
 ## Current audit target
 
-- Latest generated candidate package: `v10.94`
-- Candidate archive: `auto_snowball_web_v10_94_cross_version_state_persistence.zip`
-- Candidate SHA256: `a8674cc8c4033d58a41dc2e4de9459474c13a5360341b49472283fad1307b67f`
-- Actual Mac-local `127.0.0.1:5050`: v10.93 at `/Users/andyna/Spyder/auto_snowball_web_v10_93_fresh_centerline_cycle_guard`; v10.94 is not deployed or restarted.
-- v10.94 fixes cross-version roll-state loss: state is also saved outside versioned runtime directories at `~/.local/state/auto-snowball/.roll_engine_state.json`, so opened L2-L10 stages and order IDs survive a versioned runtime switch.
-- Validation: v10.94 runtime pytest `343 passed`; targeted state persistence/recovery `7 passed`; independent browser/E2E `14 passed`; exact extracted archive pytest `343 passed`.
-- CI mode: safe / read-only only.
-- Formal capital status: **blocked** by `正式 API 金鑰已設定=false` and `小額灰度需手動確認=false`; real private Binance reconciliation/daily performance remains `不可判定`.
+- Latest generated candidate: `v10.96`.
+- Candidate archive: `auto_snowball_web_v10_96_armed_tracking_retention_guard.zip`.
+- SHA256: `175d04fe98a8bb3589a6c1115a8583b1647f7f53eacbebd30843de630cc83812`.
+- Actual `127.0.0.1:5050`: v10.94 at `/Users/andyna/Spyder/auto_snowball_web_v10_94_cross_version_state_persistence`; v10.96 is not deployed.
+- v10.96 retains committed `ARMED_L1` tracking across ranking rotation while keeping the same four execution-slot maximum.
+- pytest state writes are isolated from production state; legacy `TESTUSDC` events are removed on load.
+- Validation: targeted `20 passed`; full pytest `351 passed`; browser/E2E `13 passed`; exact extracted archive `351 passed`.
+- Formal status: **blocked** by missing safe environment flags, incomplete XRPUSDC/BNBUSDC reconciliation, formal API credential approval, stale truth/Mark Price observed in the final gate, manual canary approval, and undeployed v10.96.
 
 ## Main v10.74 changes
 
