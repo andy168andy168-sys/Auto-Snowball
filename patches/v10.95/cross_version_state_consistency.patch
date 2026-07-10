@@ -1,0 +1,216 @@
+--- /Users/andyna/Spyder/auto_snowball_web_v10_94_cross_version_state_persistence/main.py	2026-07-02 00:00:00
++++ /Users/andyna/Spyder/auto_snowball_web_v10_95_cross_version_state_consistency_guard/main.py	2026-07-10 15:53:07
+@@ -107,7 +107,7 @@
+ )
+ ENGINE_PARAM_FILE = os.path.join(os.path.dirname(__file__), ".roll_engine_parameters.json")
+ 
+-VERSION = "10.94"
++VERSION = "10.95"
+ LOGIC_VERSION = f"D+E/v{VERSION}"
+ RUNTIME_STATE = {"host": None, "port": None, "started_at": None, "cwd": os.getcwd(), "argv": list(sys.argv)}
+ REQUIRED_PRODUCTION_PORT = 5050
+@@ -5495,14 +5495,16 @@
+ def save_roll_engine_state():
+     payload = {
+         "version": VERSION,
+-        "saved_at": now_str(),
++        # This function is invoked during module initialization, before the
++        # later convenience helper now_str() is defined.
++        "saved_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+         "mode": ROLL_ENGINE_STATE.get("mode"),
+         "plans": ROLL_ENGINE_STATE.get("plans", {}),
+         "events": ROLL_ENGINE_STATE.get("events", [])[:60],
+     }
+-    saved = False
++    saved_paths = set()
+     for state_path in (ENGINE_STATE_FILE, ENGINE_STATE_SHARED_FILE):
+-        tmp_path = state_path + ".tmp"
++        tmp_path = f"{state_path}.{os.getpid()}.{threading.get_ident()}.{time.time_ns()}.tmp"
+         try:
+             os.makedirs(os.path.dirname(state_path), exist_ok=True)
+             with open(tmp_path, "w", encoding="utf-8") as fh:
+@@ -5512,36 +5514,58 @@
+                 os.chmod(state_path, 0o600)
+             except OSError:
+                 pass
+-            saved = True
++            saved_paths.add(state_path)
+         except Exception:
+             try:
+                 if os.path.exists(tmp_path):
+                     os.unlink(tmp_path)
+             except OSError:
+                 pass
+-    return saved
++    # Cross-version recovery is only guaranteed by the stable shared snapshot.
++    # A successful runtime-local write must not hide a failed shared write.
++    return ENGINE_STATE_SHARED_FILE in saved_paths
+ 
+ 
+-def load_roll_engine_state():
+-    for state_path in (ENGINE_STATE_FILE, ENGINE_STATE_SHARED_FILE):
++def _roll_engine_state_candidate(state_path):
++    try:
++        with open(state_path, "r", encoding="utf-8") as fh:
++            payload = json.load(fh)
++        plans = payload.get("plans") if isinstance(payload, dict) else None
++        if not isinstance(plans, dict):
++            return None
++        saved_at = str(payload.get("saved_at") or "").strip()
+         try:
+-            with open(state_path, "r", encoding="utf-8") as fh:
+-                payload = json.load(fh)
+-            plans = payload.get("plans") if isinstance(payload, dict) else None
+-            if isinstance(plans, dict):
+-                ROLL_ENGINE_STATE["plans"] = plans
+-                ROLL_ENGINE_STATE["events"] = payload.get("events", [])[:60]
+-                ROLL_ENGINE_STATE["updated_at"] = payload.get("saved_at", now_str())
+-                source_note = "版本外穩定快照" if state_path == ENGINE_STATE_SHARED_FILE else "本版本快照"
+-                ROLL_ENGINE_STATE["note"] = f"已載入{source_note}；啟動前會再以 Binance 持倉真值校正"
+-                # When a new version has no local state yet, materialize the
+-                # shared snapshot into its local directory for future writes.
+-                if state_path != ENGINE_STATE_FILE and not os.path.exists(ENGINE_STATE_FILE):
+-                    save_roll_engine_state()
+-                return True
+-        except Exception:
+-            continue
+-    return False
++            saved_key = datetime.strptime(saved_at, "%Y-%m-%d %H:%M:%S").timestamp()
++        except (TypeError, ValueError):
++            saved_key = os.path.getmtime(state_path)
++        # Prefer the shared copy when timestamps tie: it is the version-neutral
++        # source and avoids depending on iteration order.
++        shared_priority = 1 if state_path == ENGINE_STATE_SHARED_FILE else 0
++        return (saved_key, shared_priority, state_path, payload)
++    except Exception:
++        return None
++
++
++def load_roll_engine_state():
++    candidates = [
++        candidate
++        for candidate in (
++            _roll_engine_state_candidate(ENGINE_STATE_FILE),
++            _roll_engine_state_candidate(ENGINE_STATE_SHARED_FILE),
++        )
++        if candidate is not None
++    ]
++    if not candidates:
++        return False
++    _saved_key, _priority, state_path, payload = max(candidates, key=lambda item: item[:2])
++    ROLL_ENGINE_STATE["plans"] = payload["plans"]
++    ROLL_ENGINE_STATE["events"] = payload.get("events", [])[:60]
++    ROLL_ENGINE_STATE["updated_at"] = payload.get("saved_at") or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
++    source_note = "版本外穩定快照" if state_path == ENGINE_STATE_SHARED_FILE else "本版本快照"
++    ROLL_ENGINE_STATE["note"] = f"已載入最新{source_note}；啟動前會再以 Binance 持倉真值校正"
++    # Heal the older/missing peer copy from the selected newest snapshot.
++    save_roll_engine_state()
++    return True
+ 
+ 
+ def engine_log(action: str, result: str, symbol: str = "SYSTEM"):
+--- /Users/andyna/Spyder/auto_snowball_web_v10_94_cross_version_state_persistence/test_v194_runtime_state_persistence.py	2026-07-02 00:00:00
++++ /Users/andyna/Spyder/auto_snowball_web_v10_95_cross_version_state_consistency_guard/test_v194_runtime_state_persistence.py	2026-07-10 15:53:23
+@@ -1,6 +1,10 @@
+ import copy
+ import json
+ import os
++import subprocess
++import sys
++import shutil
++from pathlib import Path
+ 
+ import main
+ 
+@@ -39,3 +43,91 @@
+     finally:
+         main.ROLL_ENGINE_STATE["plans"] = old_plans
+         main.ROLL_ENGINE_STATE["events"] = old_events
++
++
++def _write_snapshot(path, saved_at, stage):
++    path.parent.mkdir(parents=True, exist_ok=True)
++    path.write_text(json.dumps({
++        "saved_at": saved_at,
++        "plans": {"ORDIUSDC": {"current_stage": stage}},
++        "events": [],
++    }), encoding="utf-8")
++
++
++def test_newer_shared_snapshot_wins_over_stale_runtime_local_copy(tmp_path, monkeypatch):
++    local_path = tmp_path / "runtime" / ".roll_engine_state.json"
++    shared_path = tmp_path / "shared" / ".roll_engine_state.json"
++    monkeypatch.setattr(main, "ENGINE_STATE_FILE", str(local_path))
++    monkeypatch.setattr(main, "ENGINE_STATE_SHARED_FILE", str(shared_path))
++    _write_snapshot(local_path, "2026-07-10 10:00:00", "L2")
++    _write_snapshot(shared_path, "2026-07-10 11:00:00", "L3")
++
++    assert main.load_roll_engine_state() is True
++    assert main.ROLL_ENGINE_STATE["plans"]["ORDIUSDC"]["current_stage"] == "L3"
++    assert json.loads(local_path.read_text(encoding="utf-8"))["plans"]["ORDIUSDC"]["current_stage"] == "L3"
++
++
++def test_newer_runtime_local_snapshot_heals_stale_shared_copy(tmp_path, monkeypatch):
++    local_path = tmp_path / "runtime" / ".roll_engine_state.json"
++    shared_path = tmp_path / "shared" / ".roll_engine_state.json"
++    monkeypatch.setattr(main, "ENGINE_STATE_FILE", str(local_path))
++    monkeypatch.setattr(main, "ENGINE_STATE_SHARED_FILE", str(shared_path))
++    _write_snapshot(local_path, "2026-07-10 12:00:00", "L4")
++    _write_snapshot(shared_path, "2026-07-10 11:00:00", "L3")
++
++    assert main.load_roll_engine_state() is True
++    assert main.ROLL_ENGINE_STATE["plans"]["ORDIUSDC"]["current_stage"] == "L4"
++    assert json.loads(shared_path.read_text(encoding="utf-8"))["plans"]["ORDIUSDC"]["current_stage"] == "L4"
++
++
++def test_local_success_does_not_hide_shared_snapshot_write_failure(tmp_path, monkeypatch):
++    local_path = tmp_path / "runtime" / ".roll_engine_state.json"
++    shared_path = tmp_path / "shared" / ".roll_engine_state.json"
++    monkeypatch.setattr(main, "ENGINE_STATE_FILE", str(local_path))
++    monkeypatch.setattr(main, "ENGINE_STATE_SHARED_FILE", str(shared_path))
++    real_replace = os.replace
++
++    def fail_shared_replace(source, destination):
++        if Path(destination) == shared_path:
++            raise OSError("shared state unavailable")
++        return real_replace(source, destination)
++
++    monkeypatch.setattr(main.os, "replace", fail_shared_replace)
++    main.ROLL_ENGINE_STATE["plans"] = {"ORDIUSDC": {"current_stage": "L2"}}
++    assert main.save_roll_engine_state() is False
++    assert local_path.exists()
++    assert not shared_path.exists()
++
++
++def test_corrupt_local_snapshot_falls_back_to_valid_shared_copy(tmp_path, monkeypatch):
++    local_path = tmp_path / "runtime" / ".roll_engine_state.json"
++    shared_path = tmp_path / "shared" / ".roll_engine_state.json"
++    monkeypatch.setattr(main, "ENGINE_STATE_FILE", str(local_path))
++    monkeypatch.setattr(main, "ENGINE_STATE_SHARED_FILE", str(shared_path))
++    local_path.parent.mkdir(parents=True)
++    local_path.write_text("{broken", encoding="utf-8")
++    _write_snapshot(shared_path, "2026-07-10 11:00:00", "L3")
++
++    assert main.load_roll_engine_state() is True
++    assert main.ROLL_ENGINE_STATE["plans"]["ORDIUSDC"]["current_stage"] == "L3"
++
++
++def test_fresh_process_loads_shared_snapshot_before_now_str_definition(tmp_path):
++    shared_dir = tmp_path / "home" / ".local" / "state" / "auto-snowball"
++    shared_path = shared_dir / ".roll_engine_state.json"
++    _write_snapshot(shared_path, "2026-07-10 11:00:00", "L3")
++    env = dict(os.environ)
++    env["HOME"] = str(tmp_path / "home")
++    runtime_dir = tmp_path / "fresh-runtime"
++    runtime_dir.mkdir()
++    shutil.copy2(main.__file__, runtime_dir / "main.py")
++    result = subprocess.run(
++        [sys.executable, "-c", "import main; print(main.ROLL_ENGINE_STATE['plans']['ORDIUSDC']['current_stage'])"],
++        cwd=runtime_dir,
++        env=env,
++        text=True,
++        capture_output=True,
++        timeout=20,
++    )
++    assert result.returncode == 0, result.stderr
++    assert result.stdout.strip() == "L3"

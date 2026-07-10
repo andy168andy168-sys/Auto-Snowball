@@ -1,0 +1,31 @@
+{
+  "version": "10.95",
+  "name": "auto_snowball_web_v10_95_cross_version_state_consistency_guard",
+  "filename": "auto_snowball_web_v10_95_cross_version_state_consistency_guard.zip",
+  "zip_size_bytes": 6180269,
+  "sha256": "8fbcfa7a980eb4addb303540a7cf115ec6faf4ef616a7fb10d7e91556e609cbe",
+  "checksum_file": "SHA256SUMS",
+  "parts": [
+    "part_00.b64",
+    "part_01.b64",
+    "part_02.b64",
+    "part_03.b64",
+    "part_04.b64",
+    "part_05.b64",
+    "part_06.b64",
+    "part_07.b64"
+  ],
+  "tests": "348 passed in 37.35s; exact extracted archive 348 passed in 38.31s",
+  "production_safety_websocket": "targeted persistence/recovery/idempotency: 12 passed",
+  "browser_http_e2e": "13 passed in 22.63s",
+  "actual_5050_playwright": "actual 5050 v10.94 browser sweep passed; no deployment/restart",
+  "release_tooling": "sanitized reproducible package; forbidden artifact scan 0",
+  "status": "blocked",
+  "blocking_items": [
+    "safe verification environment variables are not set on actual 5050",
+    "正式 API 金鑰已設定=false",
+    "小額灰度需手動確認=false",
+    "Binance reconciliation dataQuality.ok=false for XRPUSDC and BNBUSDC",
+    "actual 5050 remains v10.94; v10.95 candidate not deployed"
+  ]
+}
