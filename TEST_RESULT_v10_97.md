@@ -1,89 +1,56 @@
 # TEST_RESULT v10.97
 
-## Full pytest
-```bash
-AUTO_SNOWBALL_SAFE_MODE=1 \
-AUTO_SNOWBALL_NO_REAL_ORDERS=1 \
-AUTO_SNOWBALL_READ_ONLY=1 \
-BINANCE_READ_ONLY=1 \
-python - <<'PY'
-import os, pytest
-code = pytest.main(['-q'])
-print(f'PYTEST_MAIN_EXIT_CODE={code}', flush=True)
-os._exit(code)
-PY
-```
-
-Result:
-- `343 passed, 13 skipped`
-- Exit code: `0`
+## Result
+- Full pytest: `340 passed, 13 skipped`.
+- Focused regression and launch/hygiene checks: `23 passed` before full run.
+- 5050 smoke: main pages and system APIs returned HTTP 200.
 
 ## New regression coverage
-- `test_v197_runtime_state_isolation.py`
-- Updated `test_v194_runtime_state_persistence.py`
-- Updated `test_v188_release_secret_hygiene.py`
+- `test_v197_armed_snapshot_breakout_real_sequence.py`
+- Confirms real candidate sequence:
+  1. candidate starts in `WAITING_CENTERLINE`;
+  2. current price touches/crosses centerline;
+  3. system enters `ARMED_L1` and snapshots the current dense-zone low/high;
+  4. later dense-zone boundaries move;
+  5. later price breaks the armed snapshot high/low;
+  6. system opens `L1` instead of chasing the moving boundary forever.
+- Confirms temporary missing dense-zone cache does not wipe `ARMED_L1` tracking state.
+- Confirms existing v10.96 rank-rotation retention still works.
+- Confirms existing v10.92 centerline-then-breakout rule still works.
 
-Verified:
-- All mutable runtime paths default outside the release root.
-- Release-root state/cache/evidence is ignored by default.
-- Legacy release-root import requires `AUTO_SNOWBALL_IMPORT_LEGACY_RUNTIME=1`.
-- JSON runtime writes are atomic with file mode 0600 and private parent directory.
-- virtual market cache is not reused in real mode.
-- virtual and real engine states are stored and loaded separately.
-- Running automatic trading cannot switch account mode.
-- ARMED_L1 retention and centerline-then-breakout entry tests remain passing.
+## HTTP smoke
+Started with:
+```bash
+AUTO_SNOWBALL_SAFE_MODE=1 AUTO_SNOWBALL_NO_REAL_ORDERS=1 AUTO_SNOWBALL_READ_ONLY=1 BINANCE_READ_ONLY=1 PORT=5050 python3 main.py
+```
 
-## Security regression subset
-- Rate-limit backoff
-- WebSocket disconnect/reconnect
-- Book-stream resubscription
-- Order idempotency / duplicate guard
-- Timeout query-order recovery
-- Circuit breaker
-- Close-all / process watchdog
-- DNS rebinding / CSRF / localhost POST provenance
-- WebSocket listen-key redaction
-- Release secret hygiene
+Checked endpoints:
+- `/` → 200
+- `/auto-select` → 200
+- `/calculator` → 200
+- `/realtime` → 200
+- `/audit-center` → 200
+- `/virtual-account` → 200
+- `/real-account` → 200
+- `/control-panel` → 200
+- `/api/status` → 200
+- `/api/coins` → 200; 10 candidates sorted by final score descending
+- `/api/system/formula-audit` → 200, `ok=true`, `version=10.97`, `logic_version=D+E/v10.97`
+- `/api/engine/parameters` → 200
+- `/api/system/formal-live-readiness` → 200, `formal_live_ready=false`, `must_not_claim_live_ready=true`
+- `/api/binance/daily-performance` → 200, `不可判定`
+- `/api/binance/daily-performance?mode=real` → 200, `不可判定`
+- `/api/research/dense-width` → 200, `不可判定`
 
-Result: `68 passed` before the final full-suite rerun.
+## Safety smoke
+- DNS rebinding Host header blocked: HTTP 403.
+- Mutating GET `/api/engine/plan` blocked: HTTP 405.
+- GET refresh `/api/research/dense-width?refresh=1` blocked: HTTP 405.
+- Cross-site POST blocked: HTTP 403.
+- Real-mode switch blocked under safe/read-only/no-real-orders with local JSON POST: HTTP 423.
+- Start automatic trading blocked under safe/read-only/no-real-orders with local JSON POST: HTTP 423.
+- One-key close-all blocked under safe/read-only/no-real-orders with local JSON POST: HTTP 423.
 
-## 5050 runtime smoke
-A clean v10.97 runtime was started with safe/read-only/no-real-orders flags. HTTP 200:
-- `/`
-- `/auto-select`
-- `/calculator`
-- `/realtime`
-- `/audit-center`
-- `/virtual-account`
-- `/real-account`
-- `/control-panel`
-- `/api/status`
-- `/api/coins`
-- `/api/system/formula-audit`
-- `/api/engine/parameters`
-- `/api/system/formal-live-readiness`
-- `/api/binance/daily-performance`
-- `/api/binance/daily-performance?mode=real`
-- `/api/research/dense-width`
-- `/api/engine/status`
-
-Checks:
-- formula audit: `ok=true`, `version=10.97`, `logic_version=D+E/v10.97`
-- `/api/coins`: 10 visible rows sorted by final score descending
-- formal live: `formal_live_ready=false`, `must_not_claim_live_ready=true`, 9 blockers
-- release root remained free of runtime secret/state/cache/evidence files while server was running
-
-## Runtime safety smoke
-- DNS rebinding Host: HTTP 403
-- mutating GET engine plan: HTTP 405
-- GET refresh dense-width: HTTP 405
-- cross-origin POST: HTTP 403
-- no-origin/no-local-header POST: HTTP 403
-- real-mode switch under safe/read-only/no-real-orders: HTTP 423
-- start automatic trading under safe/read-only/no-real-orders: HTTP 423
-- one-key close-all under safe/read-only/no-real-orders: HTTP 423
-
-## Browser E2E limitation
-- Playwright Python and system Chromium were present.
-- Chromium localhost navigation was blocked by the sandbox administrator policy with `net::ERR_BLOCKED_BY_ADMINISTRATOR`.
-- Therefore this run does **not** claim Mac-local/browser E2E pass; the 13 browser/Mac-local evidence tests remain skipped.
+## Notes
+- The skipped tests are browser/Playwright or Mac-local formal-gate evidence checks that cannot be satisfied inside this sandbox.
+- v10.97 is an armed-tracking runtime sequencing fix; it does not clear formal-live blockers.
