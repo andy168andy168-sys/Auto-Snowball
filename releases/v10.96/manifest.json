@@ -1,0 +1,32 @@
+{
+  "version": "10.96",
+  "name": "auto_snowball_web_v10_96_armed_tracking_retention_guard",
+  "filename": "auto_snowball_web_v10_96_armed_tracking_retention_guard.zip",
+  "zip_size_bytes": 6180136,
+  "sha256": "175d04fe98a8bb3589a6c1115a8583b1647f7f53eacbebd30843de630cc83812",
+  "checksum_file": "SHA256SUMS",
+  "parts": [
+    "part_00.b64",
+    "part_01.b64",
+    "part_02.b64",
+    "part_03.b64",
+    "part_04.b64",
+    "part_05.b64",
+    "part_06.b64",
+    "part_07.b64"
+  ],
+  "tests": "351 passed in 37.99s; exact extracted archive 351 passed in 73.11s",
+  "production_safety_websocket": "armed retention/centerline/persistence/idempotency: 20 passed",
+  "browser_http_e2e": "13 passed in 32.66s",
+  "actual_5050_playwright": "actual 5050 remains v10.94; read-only browser coverage passed; no deployment/restart",
+  "release_tooling": "sanitized reproducible package; forbidden artifact scan 0",
+  "status": "blocked",
+  "blocking_items": [
+    "safe verification environment variables are not set on actual 5050",
+    "Binance reconciliation dataQuality.ok=false for XRPUSDC and BNBUSDC",
+    "正式 API 金鑰已設定=false",
+    "交易所真值新鮮=false and 即時 Mark Price 新鮮=false observed during final gate",
+    "小額灰度需手動確認=false",
+    "actual 5050 remains v10.94; v10.96 candidate not deployed or live-proven"
+  ]
+}
